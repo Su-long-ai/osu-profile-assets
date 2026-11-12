@@ -63,6 +63,7 @@ const path=require('node:path');
   assert.equal(await page.$$eval('[data-star]',e=>e.length),7);
   await page.tap('#axis-hit');
   assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))));
+  assert.equal(await page.$eval('#axis-hit',e=>getComputedStyle(e).outlineStyle),'none','SVG focus rectangle must stay invisible');
   assert.equal(await page.$$eval('[data-star].matched',e=>e.length),4);
   assert.equal(await page.$$eval('[data-star].unmatched',e=>e.length),3);
   assert(await discovered('mirror'));
