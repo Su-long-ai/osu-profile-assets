@@ -42,4 +42,7 @@
     else el.scrollIntoView({block:'nearest',behavior:'smooth'});
   }
   window.NB={solved,complete,progress,renderIndex,renderPieces,reveal};
+  // Retry a previously solved stage if its first analytics request failed;
+  // metrics.js suppresses requests for already-counted stages and owner devices.
+  for(const id of valid)if(solved(id))count(id);
 })();
