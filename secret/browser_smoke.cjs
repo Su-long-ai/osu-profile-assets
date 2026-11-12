@@ -1,0 +1,69 @@
+/* Chromium integration check; telemetry is blocked so tests do not raise public counts. */
+const puppeteer=require('puppeteer-core');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+(async()=>{
+ const out='/tmp/archive036-screens';
+ fs.mkdirSync(out,{recursive:true});
+ const chrome=process.env.CHROME_BIN||'/usr/bin/google-chrome';
+ const browser=await puppeteer.launch({headless:true,executablePath:chrome,args:['--no-sandbox','--disable-dev-shm-usage']});
+ const page=await browser.newPage();
+ const errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewport({width:390,height:844,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ await page.setRequestInterception(true);
+ page.on('request',req=>req.url().includes('countapi.mileshilliard.com')?req.abort():req.continue());
+ const root='https://su-long-ai.github.io/osu-profile-assets/secret/';
+ async function open(name=''){
+   const res=await page.goto(root+name,{waitUntil:'domcontentloaded',timeout:28000});
+   assert(res&&res.status()===200,'Route unavailable: '+name+' '+res?.status());
+   await page.waitForFunction(()=>typeof window.NB==='object',{timeout:10000});
+   assert(!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+3)),'Mobile overflow at '+name);
+ }
+ const solved=id=>page.evaluate(x=>window.NB.solved(x),id);
+ try{
+   await open();
+   assert.equal(await page.$$eval('a[data-case]',xs=>xs.length),3);
+   await page.screenshot({path:path.join(out,'index-mobile.png')});
+   await open('sealed.html');
+   assert(await page.$eval('#verify-form',x=>x.hidden));
+   await open('signal.html');
+   for(const k of ['J','K','D','F'])await page.click('[data-key="'+k+'"]');
+   assert(await solved('signal'));
+   await open('sealed.html');
+   assert(await page.$eval('#verify-form',x=>x.hidden));
+   await open('orbit.html');
+   for(const k of ['v3','v5','v2'])await page.$eval('[data-star="'+k+'"]',x=>x.click());
+   assert(!(await solved('orbit')));
+   for(const k of ['v3','v5','v1','v7'])await page.$eval('[data-star="'+k+'"]',x=>x.click());
+   assert(await solved('orbit'));
+   await open('sealed.html');
+   assert(!(await page.$eval('#verify-form',x=>x.hidden)));
+   await page.type('#code','1234');
+   await page.click('.confirm');
+   assert(await page.$eval('#ending',x=>x.hidden));
+   await page.$eval('#code',x=>x.value='');
+   await page.type('#code','0529');
+   await page.click('.confirm');
+   assert(await solved('final'));
+   assert(!(await page.$eval('#ending',x=>x.hidden)));
+   assert(await page.$eval('#true-ending',x=>x.hidden));
+   await open('chronicle.html');
+   for(const k of ['ghost','four','seven','ln','ghost'])await page.click('[data-stamp="'+k+'"]');
+   assert(!(await solved('chronicle')));
+   for(const k of ['four','seven','ln','regular'])await page.click('[data-stamp="'+k+'"]');
+   assert(await solved('chronicle'));
+   await open('sealed.html');
+   assert(!(await page.$eval('#true-ending',x=>x.hidden)));
+   await page.screenshot({path:path.join(out,'ending-mobile.png')});
+   await page.setViewport({width:1280,height:900,isMobile:false,deviceScaleFactor:1});
+   await open();
+   await page.screenshot({path:path.join(out,'index-desktop.png')});
+   const legacy=await page.goto(root+'tape.html',{waitUntil:'domcontentloaded'});
+   assert(legacy.status()===200);
+   await page.waitForSelector('#e-side');
+   assert.equal(errors.length,0,errors.join('; '));
+   console.log('PASS public pages, mobile/desktop layout, 3 independent solves, decoy, wrong/correct code, all-three ending, legacy tape');
+ } finally {await browser.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});
