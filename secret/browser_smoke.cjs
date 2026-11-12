@@ -39,7 +39,14 @@ const path=require('node:path');
   await open('signal.html');
   assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),4);
   assert.equal(await page.$$eval('[data-lane]',xs=>xs.length),4);
-  assert.equal(await page.$$eval('.key-cap',xs=>xs.length),4,'Invisible lane buttons remain');
+  const capInspect=await page.evaluate(()=>({
+    caps:[...document.querySelectorAll('.key-cap')].map(x=>({x:x.getAttribute('x'),parent:x.parentElement?.dataset?.lane})),
+    lanes:[...document.querySelectorAll('[data-lane]')].map(x=>({lane:x.dataset.lane,cap:x.querySelectorAll('.key-cap').length,html:x.outerHTML.slice(0,300)})),
+    svg:document.querySelector('#beat-grid')?.outerHTML.slice(-1500),
+    url:location.href
+  }));
+  console.log('SVG_CAP_DIAGNOSTIC',JSON.stringify(capInspect));
+  assert.equal(await page.$$eval('.key-cap',xs=>xs.length),4,'Invisible lane buttons remain: '+JSON.stringify(capInspect.caps));
   assert.equal(await page.$$eval('#key-progress circle',xs=>xs.length),4,'No four-beat input feedback');
   await wordless();
   await shot('keys-mobile.png');
