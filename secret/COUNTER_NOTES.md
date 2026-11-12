@@ -34,3 +34,13 @@ GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、C
 统计新键：\`archive036_20261113_case_signal\`、\`archive036_20261113_case_chronicle\`、\`archive036_20261113_case_orbit\`、\`archive036_20261113_case_final\`、\`archive036_20261113_case_true\`。原五个旧键仍保留并在统计页单独分组。
 
 真实 Chrome 移动端/桌面端自动测试 \`secret/browser_smoke.cjs\` 已通过。测试阻断 CountAPI 请求，以防测试行为污染真实解锁人数。GitHub Actions 自动保存首页和结局的响应式截图。
+
+
+## 2026-11-13 · 无字版复查结果
+现行入口只有四幅图形，分别通向 `signal.html`、`chronicle.html`、`orbit.html`、`sealed.html`；早期 ARG 流程仅在 `tape.html` 归档。现在的四项统计是 `misc-keys` / `misc-dates` / `misc-mirror` / `misc-margin`，旧版数字保留在统计页折叠区域。
+
+浏览器 QA 覆盖 320px 手机、390px 手机、768px 平板、1280px/1920px 桌面，四个图形互动、键盘 Enter/Space、首次计数去重、站长排除、原始存档链接、无明显文字外露；GitHub Actions 测试流量屏蔽计数上报以免污染人数。2026-11-13 已修复低对比度、触控范围、4K SVG 子按钮辅助访问语义。
+
+**待独立确认：公开计数服务的实际访客可用性。** 2026-11-13 GitHub Actions 对 CountAPI 的只读 GET 返回 HTTP 403 且响应 `error code: 1010`（Cloudflare 机器人/浏览器签名阻拦）；连已经创建的 `archive036_smoketest_unique` 测试键也被阻断，所以无法从 GitHub 执行机验证正式人数，不能把 403 当成 0。浏览器若遭到相同阻拦，页面保留占位点而不是伪造数字。Cloudflare 针对执行机的拦截不必然意味着普通访客的浏览器也被阻拦。正式用户浏览器/手机待连接恢复后做只读验证；不通过就需更换可控的持久计数后端。为避免反复触发拦截，已移除自动化持续轮询该服务。
+
+当前站长模式由 `#owner=` 私密片段验证后写入 localStorage，页面只显示一个非文字标识 `◌`；每个站长浏览器需要单独启用，过去已计次数不会自动扣除。
