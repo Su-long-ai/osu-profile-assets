@@ -95,6 +95,60 @@ const path=require('node:path');
   await open();
   await wordless();
   await shot('index-desktop.png');
+
+  // More viewports than the normal screenshot test: small phone, tablet, wide monitor.
+  for (const [width,height] of [[320,568],[768,1024],[1920,1080]]) {
+    await page.setViewport({width,height,deviceScaleFactor:1,isMobile:width<600,hasTouch:width<600});
+    await open();
+    const rects=await page.evaluate(()=>[...document.querySelectorAll('.tile')].map(x=>{
+      const r=x.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width};
+    }));
+    assert.equal(rects.length,4);
+    for (const r of rects) {
+      assert(r.width>70 && r.left>=-2 && r.right<=width+2,'Tile clipped at '+width+': '+JSON.stringify(r));
+      assert(r.top>=0 && r.bottom<=height+2,'Tile inaccessible vertically at '+width+': '+JSON.stringify(r));
+    }
+  }
+
+  // HTML button keyboard activation must toggle exactly once (not twice).
+  await page.setViewport({width:390,height:844,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+  await open('orbit.html');
+  await page.focus('#axis-hit');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')),false,'Enter did not turn on mirror');
+  await page.keyboard.press('Space');
+  assert.equal(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')),true,'Space did not turn off mirror');
+
+  // No real analytics requests are sent. Simulated fetch checks de-duplication
+  // and that owner flag wins even if the local reported marker was cleared.
+  const analytics=await page.evaluate(async()=>{
+    const stage='misc-keys';
+    const key='nb036-analytics-v1:counted:'+stage;
+    const owner='nb036-analytics-v1:owner';
+    const oldFetch=window.fetch;
+    const beforeOwner=localStorage.getItem(owner);
+    let calls=0;
+    localStorage.removeItem(owner);
+    localStorage.removeItem(key);
+    window.fetch=async(url,...opts)=>{
+      if(String(url).includes('/hit/')){calls++;return {ok:true,json:async()=>({value:1})}}
+      return oldFetch(url,...opts);
+    };
+    try{
+      await Promise.all([nightButterflyMetrics.record(stage),nightButterflyMetrics.record(stage)]);
+      await nightButterflyMetrics.record(stage);
+      const deduplicated=calls===1&&localStorage.getItem(key)==='1';
+      localStorage.removeItem(key);
+      localStorage.setItem(owner,'1');
+      await nightButterflyMetrics.record(stage);
+      return {deduplicated,ownerExcluded:calls===1,ownerFlag:localStorage.getItem(owner)};
+    }finally{
+      window.fetch=oldFetch;
+      if(beforeOwner===null)localStorage.removeItem(owner); else localStorage.setItem(owner,beforeOwner);
+    }
+  });
+  assert(analytics.deduplicated && analytics.ownerExcluded,'Analytics owner / repeat gate failed: '+JSON.stringify(analytics));
+
   assert.equal(errors.length,0,'Browser JS errors: '+errors.join('; '));
   console.log('PASS silent site: no visible words, 4 graphic routes, 4 interactions, numeric dates, mirrored stars, paper correction, private stats, archived original, mobile+desktop');
  }finally{await browser.close()}
