@@ -24,7 +24,7 @@ const path=require('node:path');
  const solved=id=>page.evaluate(x=>window.NB.solved(x),id);
  try{
    await open();
-   assert.equal(await page.$eval('a[data-case]',xs=>xs.length),3);
+   assert.equal(await page.$$eval('a[data-case]',xs=>xs.length),3);
    const css=await page.$eval('.file-index',e=>parseFloat(getComputedStyle(e).fontSize));
    assert(css<=12,'Old cached stylesheet still active: file-index font '+css);
    await page.screenshot({path:path.join(out,'index-mobile.png')});
