@@ -56,6 +56,8 @@
     if (!allowed.has(stage)) return null;
     const response = await fetch(root + 'get/' + counterKey(stage),
       {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer'});
+    // A never-used stage key returns 404; display zero instead of a network error.
+    if (response.status === 404) return 0;
     if (!response.ok) throw new Error('Stats temporarily unavailable: ' + response.status);
     const json = await response.json();
     return Number.isFinite(json.value) ? json.value : null;
