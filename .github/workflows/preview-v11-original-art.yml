@@ -1,0 +1,32 @@
+name: Render smoother original-art osu banner
+on:
+  push:
+    paths:
+      - '.github/workflows/preview-v11-original-art.yml'
+      - 'tools/interpolate_profile_gif.py'
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install image-processing dependencies
+        run: |
+          python -m pip install --quiet pillow numpy opencv-python-headless
+      - name: Render 30 FPS from original v10 GIF without any new artwork
+        run: |
+          python tools/interpolate_profile_gif.py \
+            --source unified-036js-v10-seamless-20fps.gif \
+            --output /tmp/036js-v11-original-art-30fps.gif
+      - name: Publish preview artifacts only, do not change osu profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: 036js-v11-original-art-30fps-preview
+          path: |
+            /tmp/036js-v11-original-art-30fps.gif
+            /tmp/036js-v11-original-art-30fps.png
+            /tmp/036js-v11-original-art-30fps.json
+          retention-days: 30
+          if-no-files-found: error
