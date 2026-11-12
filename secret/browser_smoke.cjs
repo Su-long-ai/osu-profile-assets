@@ -31,20 +31,28 @@ const path=require('node:path');
  async function discovered(id){return page.evaluate(x=>window.NB.seen(x),id);}
  try{
   await open();
-  assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
+  assert.equal(await page.$eval('.tile',xs=>xs.length),4);
+  assert((await page.$eval('.tile',xs=>xs.filter(x=>getComputedStyle(x).animationName==='tile-breath').length))===4,'Gallery lacks visual discovery cues');
   assert.equal(await page.$eval('.gallery',e=>getComputedStyle(e).position),'relative');
   await wordless();
   await shot('index-mobile.png');
   await open('signal.html');
   assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),4);
-  assert.equal(await page.$$eval('[data-lane]',xs=>xs.length),4);
+  assert.equal(await page.$eval('[data-lane]',xs=>xs.length),4);
+  assert.equal(await page.$eval('.key-cap',xs=>xs.length),4,'Invisible lane buttons remain');
+  assert.equal(await page.$eval('#key-progress circle',xs=>xs.length),4,'No four-beat input feedback');
   await wordless();
   await shot('keys-mobile.png');
   for(const k of ['F','D'])await page.tap('[data-lane="'+k+'"] rect');
   assert(await page.$eval('#afterglow',e=>e.hasAttribute('hidden')),'wrong key order revealed hidden mark');
-  for(const k of ['J','K','D','F'])await page.keyboard.press(k.toLowerCase());
+  assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),0,'Wrong input should reset progress');
+  for(const [i,k] of ['J','K','D','F'].entries()){
+    await page.keyboard.press(k.toLowerCase());
+    if(i<3)assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input progress did not respond at '+k);
+  }
   assert(!(await page.$eval('#afterglow',e=>e.hasAttribute('hidden'))),'correct keys not resolved');
   assert(await discovered('keys'));
+  assert(await page.$eval('#key-progress',e=>e.hasAttribute('hidden')),'Completed progress should be replaced by final mark');
 
   await open('chronicle.html');
   await wordless();
@@ -52,21 +60,25 @@ const path=require('node:path');
   assert(await page.$eval('#interval',e=>e.hidden));
   await page.tap('[data-day="ln"]');
   assert(await page.$eval('#interval',e=>e.hidden));
+  assert(await page.$eval('.dates',e=>e.classList.contains('has-one')),'First date gives no visual feedback');
   await page.tap('[data-day="regular"]');
   assert.equal(await page.$eval('#interval',e=>e.textContent.trim()),'154');
   assert(!(await page.$eval('#interval',e=>e.hidden)));
   assert(await discovered('dates'));
+  assert(await page.$eval('.dates',e=>e.classList.contains('has-both')),'Date line was not completed');
   await shot('dates-mobile.png');
 
   await open('orbit.html');
   await wordless();
-  assert.equal(await page.$$eval('[data-star]',e=>e.length),7);
+  assert.equal(await page.$eval('[data-star]',e=>e.length),7);
+  assert(await page.$eval('#axis-beacon',e=>!e.hasAttribute('hidden')),'No discoverable symmetry-line cue');
   await page.tap('#axis-hit');
   assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))));
   assert.equal(await page.$eval('#axis-hit',e=>getComputedStyle(e).outlineStyle),'none','SVG focus rectangle must stay invisible');
   assert.equal(await page.$$eval('[data-star].matched',e=>e.length),4);
   assert.equal(await page.$$eval('[data-star].unmatched',e=>e.length),3);
   assert(await discovered('mirror'));
+  assert(await page.$eval('#axis-beacon',e=>e.hasAttribute('hidden')),'Mirror cue did not yield to the revealed guides');
   await shot('wing-mobile.png');
   await page.tap('#axis-hit');
   assert(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')));
