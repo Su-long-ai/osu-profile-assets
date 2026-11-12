@@ -19,12 +19,13 @@
       if (hex === ownerHash) localStorage.setItem(prefix + 'owner', '1');
     }
     if (localStorage.getItem(prefix + 'owner') === '1') {
-      const parent = document.querySelector('.archive');
+      const parent = document.querySelector('.shell, .archive');
       if (parent && !document.querySelector('#owner-status')) {
         const tag = document.createElement('div');
         tag.id = 'owner-status';
-        tag.textContent = 'OWNER VIEW / NOT COUNTED';
-        tag.style.cssText = 'font-size:10px;color:#89b5bc;letter-spacing:.12em;margin-top:18px';
+        tag.textContent = '◌';
+        tag.setAttribute('aria-label', '站长浏览器，访问不计数');
+        tag.style.cssText = 'position:absolute;left:25px;bottom:20px;font-size:14px;color:#6e8993;pointer-events:none';
         parent.appendChild(tag);
       }
     }
