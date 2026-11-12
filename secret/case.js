@@ -23,10 +23,10 @@
       const done=solved(id);
       item.classList.toggle('done',done);
       const badge=item.querySelector('.file-state');
-      if(badge)badge.textContent=done?'ARCHIVED / ✓':'UNRESOLVED';
+      if(badge)badge.textContent=done?'✓':'—';
     }
     const summary=document.querySelector('#summary');
-    if(summary)summary.textContent=progress().length+' / 3 CASE FILES RECOVERED';
+    if(summary)summary.textContent='已看过 '+progress().length+' / 3';
   }
   function renderPieces(){
     for(const el of document.querySelectorAll('[data-piece]')){
