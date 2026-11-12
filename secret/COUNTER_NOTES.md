@@ -21,3 +21,16 @@
 GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、CORS 和 JS 语法做测试，专用测试计数键不影响上述五个正式计数键。
 
 请不要把本站的“原有 osu! 主页未改动”与“隐藏档案新增脚本”混为一谈；所有统计事件只发生在秘密档案页面，不会统计 osu! 自带的资料页点击。
+
+## 2026-11-13 · 非线性重构
+原先所有 B-E 阶段全部保留在 \`secret/tape.html\`，不再挤在 \`secret/index.html\` 里。
+新入口 \`secret/index.html\` 汇总三个**可以任意顺序**完成的独立调查：
+- SIGNAL：八拍四轨残谱中的四个长音符，解谜输入通过后得到 S 碎片；
+- CHRONICLE：混杂一个虚构年份的四条真实时间记录，排序后得到 C 碎片；
+- ORBIT：11 颗星、镜面对称的空间谜题，解开后得到 O 碎片。
+
+\`secret/sealed.html\` 要求任意两份不同碎片，重建四位校验码并主动提交，才可打开普通结局；集齐三份并解开封条后有另一结局。
+所有新成果按浏览器 localStorage 存储，不向外上传结果或用户账户。
+统计新键：\`archive036_20261113_case_signal\`、\`archive036_20261113_case_chronicle\`、\`archive036_20261113_case_orbit\`、\`archive036_20261113_case_final\`、\`archive036_20261113_case_true\`。原五个旧键仍保留并在统计页单独分组。
+
+真实 Chrome 移动端/桌面端自动测试 \`secret/browser_smoke.cjs\` 已通过。测试阻断 CountAPI 请求，以防测试行为污染真实解锁人数。GitHub Actions 自动保存首页和结局的响应式截图。
