@@ -32,6 +32,7 @@ const path=require('node:path');
    await page.screenshot({path:path.join(out,'note-mobile.png')});
    assert(await page.$eval('#verify-form',x=>x.hidden));
    await open('signal.html');
+   assert.equal(await page.$eval('.mania-roll g[fill="url(#hold)"] rect',r=>r.length),4,'4K long note graphics missing');
    await page.screenshot({path:path.join(out,'8ticks-mobile.png')});
    for(const k of ['J','K','D','F'])await page.click('[data-key="'+k+'"]');
    assert(await solved('signal'));
