@@ -31,24 +31,24 @@ const path=require('node:path');
  async function discovered(id){return page.evaluate(x=>window.NB.seen(x),id);}
  try{
   await open();
-  assert.equal(await page.$eval('.tile',xs=>xs.length),4);
-  assert((await page.$eval('.tile',xs=>xs.filter(x=>getComputedStyle(x).animationName==='tile-breath').length))===4,'Gallery lacks visual discovery cues');
+  assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
+  assert((await page.$$eval('.tile',xs=>xs.filter(x=>getComputedStyle(x).animationName==='tile-breath').length))===4,'Gallery lacks visual discovery cues');
   assert.equal(await page.$eval('.gallery',e=>getComputedStyle(e).position),'relative');
   await wordless();
   await shot('index-mobile.png');
   await open('signal.html');
   assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),4);
-  assert.equal(await page.$eval('[data-lane]',xs=>xs.length),4);
-  assert.equal(await page.$eval('.key-cap',xs=>xs.length),4,'Invisible lane buttons remain');
-  assert.equal(await page.$eval('#key-progress circle',xs=>xs.length),4,'No four-beat input feedback');
+  assert.equal(await page.$$eval('[data-lane]',xs=>xs.length),4);
+  assert.equal(await page.$$eval('.key-cap',xs=>xs.length),4,'Invisible lane buttons remain');
+  assert.equal(await page.$$eval('#key-progress circle',xs=>xs.length),4,'No four-beat input feedback');
   await wordless();
   await shot('keys-mobile.png');
   for(const k of ['F','D'])await page.tap('[data-lane="'+k+'"] rect');
   assert(await page.$eval('#afterglow',e=>e.hasAttribute('hidden')),'wrong key order revealed hidden mark');
-  assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),0,'Wrong input should reset progress');
+  assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),0,'Wrong input should reset progress');
   for(const [i,k] of ['J','K','D','F'].entries()){
     await page.keyboard.press(k.toLowerCase());
-    if(i<3)assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input progress did not respond at '+k);
+    if(i<3)assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input progress did not respond at '+k);
   }
   assert(!(await page.$eval('#afterglow',e=>e.hasAttribute('hidden'))),'correct keys not resolved');
   assert(await discovered('keys'));
@@ -70,7 +70,7 @@ const path=require('node:path');
 
   await open('orbit.html');
   await wordless();
-  assert.equal(await page.$eval('[data-star]',e=>e.length),7);
+  assert.equal(await page.$$eval('[data-star]',e=>e.length),7);
   assert(await page.$eval('#axis-beacon',e=>!e.hasAttribute('hidden')),'No discoverable symmetry-line cue');
   await page.tap('#axis-hit');
   assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))));
