@@ -1,48 +1,21 @@
-/* Archive 036 / case state, client-side only. No login and no visitor fingerprint. */
+/* A few local interactions, not a quest or player-tracking system. */
 (() => {
   'use strict';
-  const prefix='nb036-case-v2:';
-  const branches=['signal','chronicle','orbit'];
-  const valid=new Set([...branches,'final','true']);
-  const solved=id => localStorage.getItem(prefix+id)==='1';
-  function count(id){
-    // Keep original B-E counters unchanged; new branches have separate series.
-    if(window.nightButterflyMetrics)window.nightButterflyMetrics.record('case-'+id).catch(()=>{});
+  const prefix = 'nb036-misc-v3:';
+  const accepted = new Set(['keys', 'dates', 'mirror', 'margin']);
+  function seen(name) {
+    return localStorage.getItem(prefix + name) === '1';
   }
-  function complete(id){
-    if(!valid.has(id))return false;
-    const first=!solved(id);
-    localStorage.setItem(prefix+id,'1');
-    count(id);
-    return first;
+  function notice(name) {
+    if (!accepted.has(name) || seen(name)) return;
+    localStorage.setItem(prefix + name, '1');
+    // Counts refer to one browser first noticing this detail, not a "win".
+    window.nightButterflyMetrics?.record('misc-' + name).catch(() => {});
   }
-  const progress=()=>branches.filter(solved);
-  function renderIndex(){
-    for(const item of document.querySelectorAll('[data-case]')){
-      const id=item.getAttribute('data-case');
-      const done=solved(id);
-      item.classList.toggle('done',done);
-      const badge=item.querySelector('.file-state');
-      if(badge)badge.textContent=done?'✓':'—';
-    }
-    const summary=document.querySelector('#summary');
-    if(summary)summary.textContent='已看过 '+progress().length+' / 3';
+  // Reloads also retry a failed counter request, without double-counting:
+  // metrics.js keeps its own persistent "reported" marker.
+  for (const id of accepted) {
+    if (seen(id)) window.nightButterflyMetrics?.record('misc-' + id).catch(() => {});
   }
-  function renderPieces(){
-    for(const el of document.querySelectorAll('[data-piece]')){
-      const found=solved(el.dataset.piece);
-      el.classList.toggle('found',found);
-      el.textContent=(found?'✓ ':'○ ')+el.dataset.label;
-    }
-  }
-  function reveal(el){
-    if(!el)return;
-    el.hidden=false;
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches)el.scrollIntoView({block:'nearest'});
-    else el.scrollIntoView({block:'nearest',behavior:'smooth'});
-  }
-  window.NB={solved,complete,progress,renderIndex,renderPieces,reveal};
-  // Retry a previously solved stage if its first analytics request failed;
-  // metrics.js suppresses requests for already-counted stages and owner devices.
-  for(const id of valid)if(solved(id))count(id);
+  window.NB = {notice,seen};
 })();
