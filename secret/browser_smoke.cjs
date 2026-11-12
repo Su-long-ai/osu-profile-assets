@@ -50,7 +50,7 @@ const path=require('node:path');
    assert(!(await page.$eval('#ending',x=>x.hidden)));
    assert(await page.$eval('#true-ending',x=>x.hidden));
    await open('chronicle.html');
-   for(const k of ['ghost','four','seven','ln','ghost'])await page.click('[data-stamp="'+k+'"]');
+   for(const k of ['regular','four','ln','seven'])await page.click('[data-stamp="'+k+'"]');
    assert(!(await solved('chronicle')));
    for(const k of ['four','seven','ln','regular'])await page.click('[data-stamp="'+k+'"]');
    assert(await solved('chronicle'));
