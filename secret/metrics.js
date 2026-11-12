@@ -7,6 +7,7 @@
   const prefix = 'nb036-analytics-v1:';
   const ownerHash = '6663b92aa7d5824b0a68e33c01b0cf8cbf821b6cb370b449981d017c362fc268';
   const allowed = new Set(['b-side', 'c-side', 'd-side', 'star-whisper']);
+  const pending = new Set();
 
   async function activateOwner() {
     const hash = location.hash || '';
@@ -45,15 +46,20 @@
     await ready;
     if (localStorage.getItem(prefix + 'owner') === '1') return false;
     const once = prefix + 'counted:' + stage;
-    if (localStorage.getItem(once) === '1') return false;
-    // A random browser ID prevents double counting the same browser. No osu ID is sent.
-    const url = root + encodeURIComponent(stage) + '?userId=' + encodeURIComponent(visitorId());
-    const response = await fetch(url, {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer',keepalive:true});
-    if (!response.ok) throw new Error('Counting temporarily unavailable: ' + response.status);
-    const data = await response.json();
-    if (typeof data.value !== 'number') throw new Error('Unexpected counter response');
-    localStorage.setItem(once, '1');
-    return true;
+    if (localStorage.getItem(once) === '1' || pending.has(stage)) return false;
+    pending.add(stage);
+    try {
+      // A random browser ID prevents double counting the same browser. No osu ID is sent.
+      const url = root + encodeURIComponent(stage) + '?userId=' + encodeURIComponent(visitorId());
+      const response = await fetch(url, {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer',keepalive:true});
+      if (!response.ok) throw new Error('Counting temporarily unavailable: ' + response.status);
+      const data = await response.json();
+      if (typeof data.value !== 'number') throw new Error('Unexpected counter response');
+      localStorage.setItem(once, '1');
+      return true;
+    } finally {
+      pending.delete(stage);
+    }
   }
 
   async function count(stage) {
