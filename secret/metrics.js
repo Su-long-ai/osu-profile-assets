@@ -1,9 +1,8 @@
 /* Night Butterfly / anonymous unlock counts. No pageview counters. */
 (() => {
   'use strict';
-  const ns = 'su-long-ai.github.io';
-  const action = 'nightbutterfly-unlock';
-  const root = 'https://counterapi.com/api/' + ns + '/' + action + '/';
+  const root = 'https://countapi.mileshilliard.com/api/v1/';
+  const counterKey = stage => 'archive036_20261113_' + stage.replaceAll('-', '_');
   const prefix = 'nb036-analytics-v1:';
   const ownerHash = '6663b92aa7d5824b0a68e33c01b0cf8cbf821b6cb370b449981d017c362fc268';
   const allowed = new Set(['b-side', 'c-side', 'd-side', 'star-whisper']);
@@ -32,15 +31,6 @@
   }
 
   const ready = activateOwner();
-  function visitorId() {
-    let id = localStorage.getItem(prefix + 'visitor');
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem(prefix + 'visitor', id);
-    }
-    return id;
-  }
-
   async function record(stage) {
     if (!allowed.has(stage)) return false;
     await ready;
@@ -49,8 +39,8 @@
     if (localStorage.getItem(once) === '1' || pending.has(stage)) return false;
     pending.add(stage);
     try {
-      // A random browser ID prevents double counting the same browser. No osu ID is sent.
-      const url = root + encodeURIComponent(stage) + '?userId=' + encodeURIComponent(visitorId());
+      // Each browser counts each stage once, with only local storage markers; no visitor ID is sent.
+      const url = root + 'hit/' + counterKey(stage);
       const response = await fetch(url, {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer',keepalive:true});
       if (!response.ok) throw new Error('Counting temporarily unavailable: ' + response.status);
       const data = await response.json();
@@ -64,7 +54,7 @@
 
   async function count(stage) {
     if (!allowed.has(stage)) return null;
-    const response = await fetch(root + encodeURIComponent(stage) + '?readOnly=true&unique=true',
+    const response = await fetch(root + 'get/' + counterKey(stage),
       {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer'});
     if (!response.ok) throw new Error('Stats temporarily unavailable: ' + response.status);
     const json = await response.json();
