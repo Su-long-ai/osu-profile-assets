@@ -161,3 +161,9 @@ GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、C
 osu! BBCode v13.1 隐藏星点进一步测试：原48×20锚点边界来自osu!个人介绍固定400px内滚动容器的裁切，非图片本身大小不足。内部滚动到底以后48×48图片上从10%到90%高度的5个位置全部命中同一链接；保留线上 v13.1，不为浏览器布局限制再次重做BBCode。
 
 仓库源文件 CSS 缓存v22，`browser_smoke.cjs` 新增候选星与轴互不覆盖、短横屏可滚动无重叠的回归。访客历史、计数去重、osu!资料页主视觉均保持。
+
+## 2026-11-13 · v22 线上复核与 GitHub Actions 误报修复
+
+部署提交 b6a7cd6 后直接访问公开 GitHub Pages：`audit_breakpoints_LIVE_v22.py` 实测 255/255 尺寸无碰撞/裁切；`puzzle_orbit_axis_star_LIVE_v22.py` 四种宽度候选星与观察轴分别触发；`puzzle_playtest_assembly_live.py` 和纯键盘端到端 `puzzle_playtest_keyboard_end_to_end.py` 全通过。真实 osu! 主页 -> 隐藏星 -> v22 页面也实测成功；资料页内部滚动到底后，48x48图片的五个不同高度点击点全部命中同一链接，记录于本地 `osu_to_v22_public_check.json`。计数 API 在测试里一律被拦截。
+
+GitHub browser Actions run 43430157149 首次失败并非浏览器断言，而是工作流旧式 `curl | grep -q` 在启用 `pipefail` 时被 grep 提前关闭管道产生 curl "Failed writing body"。已改为 `curl -o 临时文件 && grep -q 临时文件`，并从 `secret/index.html` 自动抽取当前 CSS 版本号，不再写死 v6/v22。保留正式页面就绪检查，避免下次发布再次触发同类误报。
