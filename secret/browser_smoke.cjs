@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=14';
+ const expectedCSS='silent.css?v=15';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -109,6 +109,15 @@ const path=require('node:path');
   assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))));
   assert.equal(await page.$eval('#axis-hit',e=>getComputedStyle(e).outlineStyle),'none','SVG focus rectangle must stay invisible');
   assert(!(await discovered('mirror')),'Clicking the axis alone cannot solve the symmetry challenge');
+  // Small phone taps slightly outside a dot should resolve to the nearest star,
+  // while blank sky must remain inactive. Exact clicks should toggle once.
+  const starMap=await page.$('#star-map').then(el=>el.boundingBox());
+  await page.touchscreen.tap(starMap.x+270/280*starMap.width,starMap.y+154/160*starMap.height);
+  assert.equal(await page.$$eval('[data-star].chosen',e=>e.length),0,'Blank sky falsely chose a star');
+  await page.touchscreen.tap(starMap.x+255/280*starMap.width,starMap.y+39/160*starMap.height);
+  assert(await page.$eval('[data-star="v3"]',e=>e.classList.contains('chosen')),'Near miss should select the nearest violet star');
+  await page.tap('[data-star="v3"] .star-hit');
+  assert.equal(await page.$$eval('[data-star].chosen',e=>e.length),0,'Exact tap double toggled a candidate');
   for(const star of ['v2','v3','v5','v7'])await page.tap('[data-star="'+star+'"] .star-hit');
   assert(!(await discovered('mirror')),'Wrong four stars must not unlock');
   assert.equal(await page.$$eval('#star-progress circle.on',e=>e.length),4);
