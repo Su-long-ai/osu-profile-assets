@@ -5,7 +5,7 @@
   const counterKey = stage => 'archive036_20261113_' + stage.replaceAll('-', '_');
   const prefix = 'nb036-analytics-v1:';
   const ownerHash = '6663b92aa7d5824b0a68e33c01b0cf8cbf821b6cb370b449981d017c362fc268';
-  const allowed = new Set(['b-side', 'c-side', 'd-side', 'star-whisper', 'e-side', 'case-signal', 'case-chronicle', 'case-orbit', 'case-final', 'case-true', 'misc-keys', 'misc-dates', 'misc-mirror', 'misc-margin', 'misc-final']);
+  const allowed = new Set(['b-side', 'c-side', 'd-side', 'star-whisper', 'e-side', 'case-signal', 'case-chronicle', 'case-orbit', 'case-final', 'case-true', 'misc-keys', 'misc-dates', 'misc-mirror', 'misc-margin', 'misc-final', 'misc-assembly']);
   const pending = new Set();
   const backoffKey = prefix + 'service-retry-after';
   async function request(url, options) {

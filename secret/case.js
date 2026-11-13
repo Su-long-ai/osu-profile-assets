@@ -9,6 +9,7 @@
   function notice(name) {
     if (!accepted.has(name) || seen(name)) return;
     localStorage.setItem(prefix + name, '1');
+    document.dispatchEvent(new CustomEvent('nb:discovered', {detail:{name}}));
     // Counts refer to one browser first noticing this detail, not a "win".
     window.nightButterflyMetrics?.record('misc-' + name).catch(() => {});
   }

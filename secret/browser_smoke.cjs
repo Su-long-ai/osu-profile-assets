@@ -108,7 +108,7 @@ const path=require('node:path');
   await open('stats.html');
   await wordless();
   assert.equal(await page.$$eval('[id^="misc-"]',e=>e.length),5);
-  assert.equal(await page.$$eval('.stats-history output',e=>e.length),10);
+  assert.equal(await page.$$eval('.stats-history output',e=>e.length),11);
   await shot('stats-mobile.png');
 
   await open();
@@ -117,30 +117,44 @@ const path=require('node:path');
   await wordless();
   await shot('all-found-mobile.png');
 
-  // The butterfly seal is an actual meta-puzzle, not a decorative dead end.
-  assert.equal(await page.$eval('#completion-seal',e=>new URL(e.href).pathname.endsWith('/finale.html')),true);
+  // The four source rooms physically leave the same pieces used in assembly.
+  for(const room of ['signal.html','chronicle.html','orbit.html','sealed.html']){
+    await open(room);
+    assert.equal(await page.$$eval('.fragment-stamp:not([hidden]) .fragment-art',e=>e.length),1,
+      'Solved room lost the actual wing fragment: '+room);
+  }
+  await open();
   await page.tap('#completion-seal');
   await page.waitForFunction(()=>location.pathname.endsWith('/finale.html'));
-  assert.equal(await page.$$eval('.final-digit input',xs=>xs.length),4);
-  assert(await page.$eval('#final-reveal',e=>e.hidden),'Final butterfly must begin sealed');
-  await shot('finale-mobile.png');
-  await page.focus('[name="signal"]');
-  for(const digit of '1111')await page.keyboard.type(digit);
-  await page.tap('.final-confirm');
-  assert(await page.$eval('#final-reveal',e=>e.hidden),'Wrong counts must not unlock');
-  assert(await page.$eval('.final-scene',e=>e.classList.contains('incorrect')),'Wrong input needs subdued feedback');
-  await page.evaluate(()=>{for(const input of document.querySelectorAll('.final-digit input'))input.value=''});
-  await page.focus('[name="signal"]');
-  for(const digit of '4241')await page.keyboard.type(digit);
-  await page.tap('.final-confirm');
-  assert(!(await page.$eval('#final-reveal',e=>e.hidden)),'Correct count sequence should form butterfly');
-  assert(await page.$eval('.final-outline',e=>e.hasAttribute('hidden')&&getComputedStyle(e).display==='none'),'Ghost outline must disappear at reveal');
-  assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v3:final')==='1'),'Final solve not stored');
-  await shot('finale-solved-mobile.png');
+  assert.equal(await page.$$eval('.assembly-slot',e=>e.length),4);
+  assert.equal(await page.$$eval('.assembly-piece',e=>e.length),4);
+  assert.equal(await page.$$eval('.assembly-ghost .fragment-art',e=>e.length),4);
+  assert(await page.$eval('#assembly-endmark',e=>e.hidden),'An unfinished butterfly must remain open');
+  await wordless();
+  await shot('assembly-mobile.png');
+
+  // A wrong physical shape must not unlock the drawing; its placement survives refresh.
+  await page.tap('.assembly-piece[data-piece="margin"]');
+  await page.tap('.assembly-slot[data-slot="0"]');
+  assert(await page.$eval('.assembly-slot[data-slot="0"]',e=>!e.classList.contains('fits')));
+  assert(await page.$eval('#assembly-endmark',e=>e.hidden),'Wrong outline triggered completion');
   await page.reload({waitUntil:'domcontentloaded'});
-  assert(!(await page.$eval('#final-reveal',e=>e.hidden)),'Finale did not survive reload');
+  assert(await page.$eval('.assembly-slot[data-slot="0"]',e=>e.classList.contains('occupied')));
+  for(const [part,position] of [['keys',0],['dates',1],['mirror',2],['margin',3]]){
+    await page.tap('.assembly-piece[data-piece="'+part+'"]');
+    await page.tap('.assembly-slot[data-slot="'+position+'"]');
+  }
+  assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),
+    'Four physically fitting wing pieces did not complete drawing');
+  assert(!(await page.$eval('#assembly-endmark',e=>e.hidden)),'Joined wing closure not shown');
+  assert(await page.$eval('#assembly-tray',e=>e.hidden),'Collected pieces should disappear after assembly');
+  assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v4:joined')==='1'),'Assembly not remembered');
+  await wordless();
+  await shot('assembly-complete-mobile.png');
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),'Completed drawing lost on refresh');
   await open();
-  assert(await page.$eval('#completion-seal',e=>e.classList.contains('complete')),'Main gallery did not preserve final achievement');
+  assert(await page.$eval('#completion-seal',e=>e.classList.contains('complete')),'Gallery did not retain completed butterfly');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
