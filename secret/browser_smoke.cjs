@@ -263,6 +263,14 @@ const path=require('node:path');
   await page.tap('#assembly-endmark');
   assert(await page.$eval('.assembly-board',e=>!e.classList.contains('is-solved')),'Completed butterfly cannot be replayed');
   assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v4:joined')==='1'),'Replay erased historical completion');
+  await open();
+  assert(await page.$eval('#completion-seal',e=>!e.classList.contains('complete')),
+    'Gallery must show separated wings while a finished player is replaying');
+  assert(await page.$eval('#completion-seal',e=>e.getAttribute('href')==='./finale.html'),
+    'Replay must retain a working finale entry');
+  await open('finale.html');
+  assert(await page.$eval('.assembly-board',e=>!e.classList.contains('is-solved')),
+    'Returning to the finale should retain unfinished replay state');
   await page.reload({waitUntil:'load'});
   assert(await page.$eval('.assembly-board',e=>!e.classList.contains('is-solved')),'Replay progress lost on refresh');
   for(const [part,position] of [['keys',0],['dates',1],['mirror',2],['margin',3]]){
