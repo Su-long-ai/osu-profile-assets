@@ -18,10 +18,19 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
+ const expectedCSS='silent.css?v=14';
+ let firstPage=true;
  async function open(name=''){
-  const res=await page.goto(base+name+'?v='+cacheBuster,{waitUntil:'load',timeout:27000});
+  let res,css='';
+  for(let attempt=0;attempt<(firstPage?16:1);attempt++){
+   res=await page.goto(base+name+'?v='+cacheBuster+'-'+attempt,{waitUntil:'load',timeout:27000});
+   css=await page.evaluate(()=>document.querySelector('link[href*="silent.css"]')?.getAttribute('href')||'');
+   if(res.status()===200&&css.includes(expectedCSS))break;
+   await new Promise(resolve=>setTimeout(resolve,2000));
+  }
+  firstPage=false;
   assert.equal(res.status(),200,name+' not ready: '+res.status());
-  await page.waitForFunction(()=>!!document.querySelector('link[href*="silent.css"]'),{timeout:8000});
+  assert(css.includes(expectedCSS),name+' served stale artwork: '+css);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'horizontal overflow: '+name);
  }
  async function wordless(){
@@ -150,6 +159,8 @@ const path=require('node:path');
   await open();
   assert.equal(await page.$$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
+  assert(await page.$eval('.seal-shards',e=>getComputedStyle(e).display!=='none'),'Unassembled hub must show separated wing fragments');
+  assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display==='none'),'Full butterfly must not spoil the finale');
   await wordless();
   await shot('all-found-mobile.png');
 
@@ -192,6 +203,8 @@ const path=require('node:path');
   assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),'Completed drawing lost on refresh');
   await open();
   assert(await page.$eval('#completion-seal',e=>e.classList.contains('complete')),'Gallery did not retain completed butterfly');
+  assert(await page.$eval('.seal-shards',e=>getComputedStyle(e).display==='none'),'Finished hub still shows unassembled shards');
+  assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display!=='none'),'Finished hub did not reveal full butterfly');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);

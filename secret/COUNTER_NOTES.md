@@ -85,3 +85,9 @@ GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、C
 - 根页面可见范围仍然不增加文字；只新增 22 个周期刻度和对应的辅助访问描述，统计 stage 名称保持不变。
 - 测试脚本：puzzle_playtest_date_thread_v4.py、puzzle_playtest_paper_drag_v4.py、puzzle_playtest_assembly.py、puzzle_playtest_assembly_gestures.py、puzzle_playtest_assembly_stats.py；模拟或拦截写入，不污染真实访客数。
 - 统计服务单次只读验收：2026-11-13 浏览器内 5 个正式 GET 均 200，截图可正常显示；但不同网络/CDN 仍可能返回 403，不能将一次测试视为全地区可用，也不能把计数视为严格真人数。
+
+
+## 2026-11-13 · 完成前不剧透最终蝶翼
+以前四间房完成后，入口直接展示整只夜蝶；玩家还没拼图就提前看到结局。现在入口图标分为未拼接的四道疏离曲线和完成后真正连续的夜蝶线稿：未拼图时只显示分离翼片，拼图完成才切换为整蝶，并更新屏幕阅读器标签。保持原来的大触控区域及最后拼图入口。
+
+浏览器实测文件：puzzle_playtest_hub_seal_v4.py，390px 完成前/后截图及状态判定均通过。自动浏览器 smoke 加入完成前不得显示整蝶、完成后不得显示残缺翼片、必须加载本次 CSS 版本的断言；解决 Pages 部署与视觉 CI 并行时测试到了旧页面而误报通过的问题（入口首次允许短时等待到新版本）。本轮 CSS 更新为 v14。
