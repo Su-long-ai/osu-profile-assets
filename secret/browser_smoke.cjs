@@ -19,15 +19,26 @@ const path=require('node:path');
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
  async function open(name=''){
-  const res=await page.goto(base+name+'?v='+cacheBuster,{waitUntil:'domcontentloaded',timeout:27000});
+  const res=await page.goto(base+name+'?v='+cacheBuster,{waitUntil:'load',timeout:27000});
   assert.equal(res.status(),200,name+' not ready: '+res.status());
   await page.waitForFunction(()=>!!document.querySelector('link[href*="silent.css"]'),{timeout:8000});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'horizontal overflow: '+name);
  }
  async function wordless(){
-   const text=await page.evaluate(()=>document.body.innerText.trim());
+ const text=await page.evaluate(()=>{
+   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    const visible=[];
+     let node;
+     while((node=walker.nextNode())){
+       const el=node.parentElement;
+       if(!el||el.closest('.sr-only,[hidden],[aria-hidden="true"],script,style'))continue;
+       if(getComputedStyle(el).visibility==='hidden'||getComputedStyle(el).display==='none')continue;
+       if(node.textContent.trim())visible.push(node.textContent.trim());
+     }
+     return visible.join(' ');
+   });
    assert(!/[\p{L}]/u.test(text),'visible words found: '+JSON.stringify(text));
- }
+  }
  async function shot(name){await page.screenshot({path:path.join(folder,name)});}
  async function discovered(id){return page.evaluate(x=>window.NB.seen(x),id);}
  try{
@@ -91,7 +102,7 @@ const path=require('node:path');
   await page.tap('#axis-hit');
   assert(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')));
   await page.tap('#axis-hit');
-  await page.reload({waitUntil:'domcontentloaded'});
+  await page.reload({waitUntil:'load'});
   assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))),'Mirror completion should survive reload');
 
   await open('sealed.html');
@@ -103,7 +114,7 @@ const path=require('node:path');
   assert(await discovered('margin'));
   await wordless();
   await shot('paper-mobile.png');
-  await page.reload({waitUntil:'domcontentloaded'});
+  await page.reload({waitUntil:'load'});
   assert(await page.$eval('#paper',e=>e.classList.contains('corrected')),'Paper completion should survive reload');
 
   await open('stats.html');
@@ -127,6 +138,7 @@ const path=require('node:path');
   await open();
   await page.tap('#completion-seal');
   await page.waitForFunction(()=>location.pathname.endsWith('/finale.html'));
+  await page.waitForFunction(()=>document.querySelectorAll('.assembly-ghost .fragment-art').length===4,{timeout:10000});
   assert.equal(await page.$$eval('.assembly-slot',e=>e.length),4);
   assert.equal(await page.$$eval('.assembly-piece',e=>e.length),4);
   assert.equal(await page.$$eval('.assembly-ghost .fragment-art',e=>e.length),4);
@@ -139,7 +151,7 @@ const path=require('node:path');
   await page.tap('.assembly-slot[data-slot="0"]');
   assert(await page.$eval('.assembly-slot[data-slot="0"]',e=>!e.classList.contains('fits')));
   assert(await page.$eval('#assembly-endmark',e=>e.hidden),'Wrong outline triggered completion');
-  await page.reload({waitUntil:'domcontentloaded'});
+  await page.reload({waitUntil:'load'});
   assert(await page.$eval('.assembly-slot[data-slot="0"]',e=>e.classList.contains('occupied')));
   for(const [part,position] of [['keys',0],['dates',1],['mirror',2],['margin',3]]){
     await page.tap('.assembly-piece[data-piece="'+part+'"]');
@@ -152,7 +164,7 @@ const path=require('node:path');
   assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v4:joined')==='1'),'Assembly not remembered');
   await wordless();
   await shot('assembly-complete-mobile.png');
-  await page.reload({waitUntil:'domcontentloaded'});
+  await page.reload({waitUntil:'load'});
   assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),'Completed drawing lost on refresh');
   await open();
   assert(await page.$eval('#completion-seal',e=>e.classList.contains('complete')),'Gallery did not retain completed butterfly');
@@ -168,7 +180,7 @@ const path=require('node:path');
   await page.tap('#constellation');
   for(const k of ['0','3','6'])await page.tap('[data-digit="'+k+'"]');
   assert(!(await page.$eval('#e-side',e=>e.hidden)),'Archived E-Side cannot be completed');
-  await page.reload({waitUntil:'domcontentloaded'});
+  await page.reload({waitUntil:'load'});
   assert(!(await page.$eval('#e-side',e=>e.hidden)),'Archived E-Side should survive reload');
 
   await page.setViewport({width:1280,height:900,deviceScaleFactor:1,isMobile:false,hasTouch:false});
