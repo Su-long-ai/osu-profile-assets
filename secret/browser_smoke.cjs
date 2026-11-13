@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=20';
+ const expectedCSS='silent.css?v=21';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -166,7 +166,17 @@ const path=require('node:path');
   await page.mouse.move(inkArea.x+inkArea.width/2-19,inkArea.y+inkArea.height/2-19,{steps:5});
   await page.mouse.up();
   assert(await page.$eval('#correction',e=>e.hasAttribute('hidden')),'Moving the ink away from its target cannot solve');
+  await page.mouse.move(inkArea.x+inkArea.width/2,inkArea.y+inkArea.height/2);
+  await page.mouse.down();
+  await page.mouse.move(inkArea.x+inkArea.width/2+34,inkArea.y+inkArea.height/2+20,{steps:5});
+  await page.mouse.up();
+  assert(await page.$eval('#correction',e=>e.hasAttribute('hidden')),'Dragging down but far sideways cannot join ink');
   await page.tap('#scribble');
+  assert(await page.$eval('#correction',e=>e.hasAttribute('hidden')),
+    'A single tap must pick the ink, never bypass the physical correction');
+  assert(await page.$eval('#ink-socket',e=>!e.hasAttribute('hidden')),
+    'Picking the loose ink should reveal its target control');
+  await page.tap('#ink-socket');
   assert(!(await page.$eval('#correction',e=>e.hasAttribute('hidden'))));
   assert(await page.$eval('#paper',e=>e.classList.contains('corrected')));
   assert(await discovered('margin'));
@@ -281,7 +291,7 @@ const path=require('node:path');
   await shot('index-desktop.png');
 
   // More viewports than the normal screenshot test: small phone, tablet, wide monitor.
-  for (const [width,height] of [[320,568],[768,1024],[1920,1080]]) {
+  for (const [width,height] of [[320,568],[360,640],[390,844],[428,926],[768,1024],[1280,900],[1920,1080]]) {
     await page.setViewport({width,height,deviceScaleFactor:1,isMobile:width<600,hasTouch:width<600});
     await open();
     const rects=await page.evaluate(()=>[...document.querySelectorAll('.tile')].map(x=>{
@@ -292,6 +302,19 @@ const path=require('node:path');
       assert(r.width>70 && r.left>=-2 && r.right<=width+2,'Tile clipped at '+width+': '+JSON.stringify(r));
       assert(r.top>=0 && r.bottom<=height+2,'Tile inaccessible vertically at '+width+': '+JSON.stringify(r));
     }
+    const overlaps=await page.evaluate(()=>{
+      const selectors=['.breadcrumb','.utility','.tile-a','.tile-b','.tile-c','.tile-d','#completion-seal'];
+      const rects=selectors.map(s=>{const r=document.querySelector(s).getBoundingClientRect();return {s,r}});
+      const collisions=[];
+      for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
+        const a=rects[i].r,b=rects[j].r;
+        const area=Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*
+          Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+        if(area>1)collisions.push(rects[i].s+' / '+rects[j].s+': '+Math.round(area));
+      }
+      return collisions;
+    });
+    assert.equal(overlaps.length,0,'Overlapping navigation hitboxes at '+width+': '+overlaps.join('; '));
   }
 
   // HTML button keyboard activation must toggle exactly once (not twice).

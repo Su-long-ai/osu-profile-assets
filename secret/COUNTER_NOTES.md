@@ -136,3 +136,16 @@ GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、C
 
 ## 2026-11-13 · v20 进一步修复未完成图案的链接语义
 中央夜蝶在未收集四片时，以前只有 pointer-events:none 和 tabindex=-1，但 `<a href>` 仍存在，辅助技术、快捷方式或自动化仍可能触发一次无意义的终章跳转。现在 0–3 片状态彻底移除 href；第4片出现时恢复 `./finale.html`，并恢复键盘焦点和点击。浏览器五态测试 `puzzle_preview_progress_v19.py` 已加入 `destination` 字段验证；0–4片全部 PASS。无新增页面内容，不影响旧 localStorage。
+
+
+## 2026-11-13 · v21 玩家视角复审：小屏点击框分离 + 纸张真实接合
+
+**发现的实质缺陷**：原首页在320px下统计按钮与纸张图点击框重叠1936平方像素，中央夜蝶同时遮住时间线与星图的部分点击框；在390px与部分平板屏幕也存在重叠。之前的测试只检查是否溢出屏幕，没有检查点击对象相互覆盖。
+
+**修复**：统计按钮改放右上角，与左上返回按钮形成对称导航；≤360px时优化日期、星图的纵向节奏；移动端中央蝶身向上轻移5px，平板/桌面中央蝶身向右42px，正好落进真正的视觉空隙。六种视口320×568/360×640/390×844/428×926/768×1024/1280×900实测所有导航和图块的矩形点击框两两无重叠，且不新增水平滚动。Linux浏览器smoke扩展至含1920×1080共7种视口并强制检查按钮碰撞，作为未来改版回归约束。
+
+**纸张关逻辑修复**：此前在纸张中央较大的透明按钮点一次就调用NB.notice('margin')，玩家不需要真的观察断笔和对齐点。改成选中断笔后，必须点击下方淡色对齐标记才能接合；或者一次连续把断笔向下拖到目标、同时不能严重横向偏移。空白纸、只点一下、错误方向与横向误拖都不解锁。HTML本身保留两个具中文无障碍名称的语义按钮，屏幕阅读器和键盘Space/Enter均可操作；保留玩家已发现碎片、旧计数、重新检查已解开图形的能力。因按钮原生键盘激活本就可靠，避免增加会造成Space触发两次的多余键盘事件层。
+
+**验证**：puzzle_paper_physical_v21.py、puzzle_playtest_paper_drag_v4.py、puzzle_playtest_paper_hitarea_v3.py、puzzle_playtest_assembly.py、puzzle_keyboard_LOCAL_v21.py、puzzle_playtest_all_24_orders.py、puzzle_playtest_assembly_gestures.py、puzzle_playtest_replay_v17.py、puzzle_playtest_assembly_stats.py、audit_hit_overlaps_v21.py 全部通过。4场景24种排列每种都实操到终章拼好；页面无JavaScript异常。所有测试第三方正式计数写入均模拟/阻断。
+
+静态样式缓存v21，未修改osu!主站BBCode，也未覆盖访客历史发现记录。
