@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=16';
+ const expectedCSS='silent.css?v=18';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -172,6 +172,12 @@ const path=require('node:path');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
   assert(await page.$eval('.seal-shards',e=>getComputedStyle(e).display!=='none'),'Unassembled hub must show separated wing fragments');
   assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display==='none'),'Full butterfly must not spoil the finale');
+  const sameArtwork=await page.evaluate(()=>{
+    const source=window.NBFragments.parts.map(p=>p.contour);
+    const preview=[...document.querySelectorAll('.seal-shards > g > path')].map(p=>p.getAttribute('d'));
+    return source.length===4 && source.every((d,i)=>d===preview[i]);
+  });
+  assert(sameArtwork,'Home butterfly differs from the four original wing outlines');
   await wordless();
   await shot('all-found-mobile.png');
 
@@ -188,6 +194,9 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.assembly-slot',e=>e.length),4);
   assert.equal(await page.$$eval('.assembly-piece',e=>e.length),4);
   assert.equal(await page.$$eval('.assembly-ghost .fragment-art',e=>e.length),4);
+  assert.equal(await page.$$eval('.assembly-ghost clipPath rect',e=>e.filter(x=>Number(x.getAttribute('width'))<=20).length),4,
+    'Only a small physical wing root should hint at each position');
+  assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),0);
   assert(await page.$eval('#assembly-endmark',e=>e.hidden),'An unfinished butterfly must remain open');
   await wordless();
   await shot('assembly-mobile.png');
@@ -196,6 +205,7 @@ const path=require('node:path');
   await page.tap('.assembly-piece[data-piece="margin"]');
   await page.tap('.assembly-slot[data-slot="0"]');
   assert(await page.$eval('.assembly-slot[data-slot="0"]',e=>!e.classList.contains('fits')));
+  assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),0,'Wrong wing must not visibly join body');
   assert(await page.$eval('#assembly-endmark',e=>e.hidden),'Wrong outline triggered completion');
   await page.reload({waitUntil:'load'});
   assert(await page.$eval('.assembly-slot[data-slot="0"]',e=>e.classList.contains('occupied')));
@@ -205,9 +215,21 @@ const path=require('node:path');
   }
   assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),
     'Four physically fitting wing pieces did not complete drawing');
+  assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),4,
+    'Completed butterfly must visibly connect its four wings');
   assert(!(await page.$eval('#assembly-endmark',e=>e.hidden)),'Joined wing closure not shown');
   assert(await page.$eval('#assembly-tray',e=>e.hidden),'Collected pieces should disappear after assembly');
   assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v4:joined')==='1'),'Assembly not remembered');
+  await page.tap('#assembly-endmark');
+  assert(await page.$eval('.assembly-board',e=>!e.classList.contains('is-solved')),'Completed butterfly cannot be replayed');
+  assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v4:joined')==='1'),'Replay erased historical completion');
+  await page.reload({waitUntil:'load'});
+  assert(await page.$eval('.assembly-board',e=>!e.classList.contains('is-solved')),'Replay progress lost on refresh');
+  for(const [part,position] of [['keys',0],['dates',1],['mirror',2],['margin',3]]){
+    await page.tap('.assembly-piece[data-piece="'+part+'"]');
+    await page.tap('.assembly-slot[data-slot="'+position+'"]');
+  }
+  assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),'Replayed assembly did not complete');
   await wordless();
   await shot('assembly-complete-mobile.png');
   await page.reload({waitUntil:'load'});

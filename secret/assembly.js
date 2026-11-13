@@ -7,6 +7,7 @@
   const oldKey = name => 'nb036-misc-v3:' + name;
   const finalKey = 'nb036-misc-v4:joined';
   const boardKey = 'nb036-assembly-v1:slots';
+  const replayKey = 'nb036-assembly-v2:replay';
   if (!ids.every(id => localStorage.getItem(oldKey(id)) === '1')) {
     location.replace('./');
     return;
@@ -18,10 +19,19 @@
   const status = document.querySelector('#assembly-status');
   const slots = [...document.querySelectorAll('.assembly-slot')];
   const pieces = [...document.querySelectorAll('.assembly-piece')];
+  // Each fitted wing continues its real root vein into the central body.
+  // Wrong placements are allowed, but they never make this seam.
+  const joins = [
+    'M129 100 Q137 105 142 115',
+    'M13 100 Q5 105 0 115',
+    'M128 17 Q137 9 142 0',
+    'M14 17 Q5 9 0 0'
+  ];
 
   let placements = [null, null, null, null];
   let selected = null;
-  let completed = localStorage.getItem(finalKey) === '1';
+  let completed = localStorage.getItem(finalKey) === '1' &&
+    localStorage.getItem(replayKey) !== '1';
 
   const saved = JSON.parse(localStorage.getItem(boardKey) || 'null');
   if (Array.isArray(saved) && saved.length === 4 &&
@@ -34,8 +44,13 @@
   function show() {
     slots.forEach((slot, index) => {
       const id = placements[index];
+      const fitted = id === ids[index];
+      const seam = fitted ?
+        '<span class="assembly-root-join"><svg viewBox="0 0 142 115" aria-hidden="true">' +
+        '<path d="' + joins[index] + '" stroke="' + fragments.parts[index].color +
+        '" stroke-width="1.15" fill="none" stroke-linecap="round"/></svg></span>' : '';
       slot.innerHTML = '<span class="assembly-ghost">' + fragments.svg(ids[index], 'ghost') + '</span>' +
-        (id ? '<span class="assembly-filled">' + fragments.svg(id) + '</span>' : '');
+        (id ? '<span class="assembly-filled">' + fragments.svg(id) + '</span>' : '') + seam;
       slot.classList.toggle('occupied', Boolean(id));
       slot.classList.toggle('fits', id === ids[index]);
       slot.classList.toggle('selected', selected === id && id !== null);
@@ -55,6 +70,7 @@
       button.disabled = completed;
     });
     board.classList.toggle('is-solved', completed);
+    board.classList.toggle('piece-selected', selected !== null && !completed);
     tray.hidden = completed;
     endmark.hidden = !completed;
   }
@@ -71,14 +87,17 @@
     show();
   }
   function finish() {
+    const firstCompletion = localStorage.getItem(finalKey) !== '1';
     completed = true;
     selected = null;
     placements = [...ids];
     remember();
     localStorage.setItem(finalKey, '1');
+    localStorage.removeItem(replayKey);
     show();
     status.textContent = '四片碎翼拼合，夜蝶完整显现';
-    window.nightButterflyMetrics?.record('misc-assembly').catch(() => {});
+    // Reassembling the same butterfly never counts as a new solver.
+    if (firstCompletion) window.nightButterflyMetrics?.record('misc-assembly').catch(() => {});
   }
   function place(index) {
     if (completed) return;
@@ -93,6 +112,18 @@
     if (placements.every((id, i) => id === ids[i])) finish();
     else status.textContent = '蝶翼已放入，可继续调整其他碎片';
   }
+
+  endmark.addEventListener('click', () => {
+    if (!completed) return;
+    completed = false;
+    selected = null;
+    placements = [null, null, null, null];
+    localStorage.setItem(replayKey, '1');
+    remember();
+    show();
+    status.textContent = '四片蝶翼已经重新分开，可以再次拼合';
+    pieces[0]?.focus();
+  });
 
   for (const button of pieces) {
     button.addEventListener('click', () => pick(button.dataset.piece));

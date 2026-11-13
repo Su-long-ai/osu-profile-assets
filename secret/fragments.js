@@ -36,14 +36,47 @@
     const part = byId[id];
     if (!part) return '';
     const ghost = type === 'ghost';
+    const rootWindows = {
+      keys: [124, 95, 18, 20], dates: [0, 95, 18, 20],
+      mirror: [124, 0, 18, 19], margin: [0, 0, 18, 19]
+    };
     const outline = '<path class="fragment-outline" d="' + part.contour + '" fill="none" stroke="' +
-      (ghost ? '#667b89' : part.color) + '" stroke-width="' + (ghost ? '1' : '1.65') + '"' +
-      (ghost ? ' stroke-dasharray="2 5"' : '') + '/>';
+      (ghost ? '#8196a0' : part.color) + '" stroke-width="' + (ghost ? '1.15' : '1.65') + '"' +
+      (ghost ? ' stroke-dasharray="2 4"' : '') + '/>';
     const details = ghost ? '' : '<g class="fragment-detail" fill="none" stroke="' + part.color +
       '" stroke-width=".95" stroke-linejoin="round" stroke-linecap="round">' + part.veins + '</g>';
-    return '<svg class="fragment-art' + (ghost ? ' ghost-art' : '') +
-      '" viewBox="0 0 142 115" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    if (ghost) {
+      // A physical joint, not a full dotted answer. The player must infer
+      // the wing's outer shape and direction from the four collected shards.
+      const [x,y,w,h] = rootWindows[id];
+      const root = {keys:[137,107],dates:[5,107],mirror:[135,7],margin:[7,7]}[id];
+      const clip = 'wing-seam-' + id;
+      return '<svg class="fragment-art ghost-art" viewBox="0 0 142 115" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+        '<defs><clipPath id="' + clip + '"><rect x="' + x + '" y="' + y +
+        '" width="' + w + '" height="' + h + '"/></clipPath></defs>' +
+        '<g clip-path="url(#' + clip + ')">' + outline + '</g>' +
+        '<circle cx="' + root[0] + '" cy="' + root[1] +
+        '" r="1.7" fill="#8faeb4" opacity=".62"/></svg>';
+    }
+    return '<svg class="fragment-art" viewBox="0 0 142 115" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       outline + details + '</svg>';
+  }
+  function miniSeal() {
+    // The same source contours must appear in the rooms, assembly, and home.
+    // Before completion the four wings are displaced, never a second drawing.
+    const paint = broken => parts.map((part, i) => {
+      const left = i % 2 === 0;
+      const x = (left ? 0 : 142) + (broken ? (left ? -15 : 15) : 0);
+      const y = (i < 2 ? 0 : 115) + (broken ? (i < 2 ? -11 : 11) : 0);
+      return '<g transform="translate(' + x + ' ' + y + ')">' +
+        '<path d="' + part.contour + '" stroke="' + part.color + '" stroke-width="2.8" fill="none"/>' +
+        '<g stroke="' + part.color + '" fill="none" stroke-width="1.5" opacity=".58">' + part.veins + '</g></g>';
+    }).join('');
+    return '<svg viewBox="-18 -12 316 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<g class="seal-shards">' + paint(true) + '</g>' +
+      '<g class="seal-wings">' + paint(false) + '</g>' +
+      '<path d="M140 98V155M140 105Q131 86 122 80M140 105Q149 86 158 80" ' +
+      'stroke="#8ca9af" stroke-width="1.7" fill="none" opacity=".64"/></svg>';
   }
   function mountStamp() {
     const page = location.pathname.split('/').pop()?.replace('.html', '');
@@ -66,7 +99,7 @@
     window.addEventListener('pageshow', update);
     update();
   }
-  window.NBFragments = { parts, svg };
+  window.NBFragments = { parts, svg, miniSeal };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountStamp);
   else mountStamp();
 })();

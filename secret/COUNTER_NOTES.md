@@ -101,3 +101,16 @@ GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、C
 
 ## 2026-11-13 · 四轨关真正可点击的长音符（视觉 v16）
 复查发现原本有四个发光长音符，但能操作的只有页面顶部隐约发光的四个小键帽。手机访客自然触摸长音符却无效，这违背图形谜题“看见的就是交互对象”的设计原则。四个真实长音符的 SVG rect 现均可以触摸点击、Tab聚焦、Enter/Space 激活，直接输入其所处轨道；上方轨道按钮和键盘 DFJK 不变，保持旧进度和原统计键。覆盖在长音符顶部的装饰性高光条标记为 pointer-events:none，避免顶端点击被拦截。390px触摸四个音符、错误顺序重置、320px键盘辅助、原轨道键触摸测试均通过；Linux自动检查已加入音符触摸 + 键盘混合的通关步骤。
+
+## 2026-11-13 · 终章线索减法、同源图像与可重玩（v18）
+
+本轮反思：四片完整虚线轮廓就是直接显示拼图答案；同时主页中心和最终页原来画了两只不同的蝴蝶；对旧访客来说已通关便不可体验新版谜题。
+
+实际改动：
+- `fragments.js` ghost 模式只显示翼根附近的小段真实轮廓，约 18×20 SVG 单位，并给出极小锚点，取消整个外翼的点状描边。无数字密码，不加入旋转次数等无依据步骤。
+- 每个翼片只有放到真实匹配位置时才出现一条自然衔接蝶身的根部线条；放错仍然保留、可取回并继续尝试。拿起碎片时四个连接区域有轻微发光，不在未操作时透出答案。
+- 首页小夜蝶现在由相同的四个 `part.contour` 与 `part.veins` 生成；历史已经解开后完整、未拼完时四片分离，不再用另画的一套 SVG。
+- 最终页完成后下方细横线同时是可以按键盘激活的“重新拼合”按钮。重玩独立标识 `nb036-assembly-v2:replay` 可保留刷新中途进度，永久 `nb036-misc-v4:joined` 不移除。历史完成者不重新请求计数；新访客首次完成仍使用 `misc-assembly` 且去重。
+- 缓存版本 CSS v18、fragments v3、assembly v3。
+
+验收：本地 `puzzle_playtest_assembly.py`、`puzzle_playtest_hub_seal_v4.py`、`puzzle_playtest_replay_v17.py`、`puzzle_playtest_assembly_gestures.py`、`puzzle_playtest_assembly_stats.py`、纯键盘 `puzzle_playtest_keyboard_end_to_end.py`、24 种访问顺序 `puzzle_playtest_all_24_orders.py`、图像对照均运行。测试时模拟/拦截正式计数写入。已有用户状态完整保留。
