@@ -89,6 +89,9 @@ const path=require('node:path');
   await shot('wing-mobile.png');
   await page.tap('#axis-hit');
   assert(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')));
+  await page.tap('#axis-hit');
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))),'Mirror completion should survive reload');
 
   await open('sealed.html');
   await wordless();
@@ -99,6 +102,8 @@ const path=require('node:path');
   assert(await discovered('margin'));
   await wordless();
   await shot('paper-mobile.png');
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert(await page.$eval('#paper',e=>e.classList.contains('corrected')),'Paper completion should survive reload');
 
   await open('stats.html');
   await wordless();
@@ -106,9 +111,25 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.stats-history output',e=>e.length),10);
   await shot('stats-mobile.png');
 
+  await open();
+  assert.equal(await page.$$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
+  assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
+  await wordless();
+  await shot('all-found-mobile.png');
+
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
   await page.waitForSelector('#e-side',{timeout:10000});
+  await page.tap('details summary');
+  await page.tap('#redact');
+  for(const k of ['d','f','j','k'])await page.tap('[data-lane="'+k+'"]');
+  await page.tap('[data-year="2020"]');
+  await page.tap('[data-year="2025"]');
+  await page.tap('#constellation');
+  for(const k of ['0','3','6'])await page.tap('[data-digit="'+k+'"]');
+  assert(!(await page.$eval('#e-side',e=>e.hidden)),'Archived E-Side cannot be completed');
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert(!(await page.$eval('#e-side',e=>e.hidden)),'Archived E-Side should survive reload');
 
   await page.setViewport({width:1280,height:900,deviceScaleFactor:1,isMobile:false,hasTouch:false});
   await open();
@@ -132,6 +153,7 @@ const path=require('node:path');
   // HTML button keyboard activation must toggle exactly once (not twice).
   await page.setViewport({width:390,height:844,deviceScaleFactor:1,isMobile:true,hasTouch:true});
   await open('orbit.html');
+  if(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))))await page.tap('#axis-hit');
   await page.focus('#axis-hit');
   await page.keyboard.press('Enter');
   assert.equal(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')),false,'Enter did not turn on mirror');
