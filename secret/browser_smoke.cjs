@@ -107,7 +107,7 @@ const path=require('node:path');
 
   await open('stats.html');
   await wordless();
-  assert.equal(await page.$$eval('[id^="misc-"]',e=>e.length),4);
+  assert.equal(await page.$$eval('[id^="misc-"]',e=>e.length),5);
   assert.equal(await page.$$eval('.stats-history output',e=>e.length),10);
   await shot('stats-mobile.png');
 
@@ -116,6 +116,31 @@ const path=require('node:path');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
   await wordless();
   await shot('all-found-mobile.png');
+
+  // The butterfly seal is an actual meta-puzzle, not a decorative dead end.
+  assert.equal(await page.$eval('#completion-seal',e=>new URL(e.href).pathname.endsWith('/finale.html')),true);
+  await page.tap('#completion-seal');
+  await page.waitForFunction(()=>location.pathname.endsWith('/finale.html'));
+  assert.equal(await page.$$eval('.final-digit input',xs=>xs.length),4);
+  assert(await page.$eval('#final-reveal',e=>e.hidden),'Final butterfly must begin sealed');
+  await shot('finale-mobile.png');
+  await page.focus('[name="signal"]');
+  for(const digit of '1111')await page.keyboard.type(digit);
+  await page.tap('.final-confirm');
+  assert(await page.$eval('#final-reveal',e=>e.hidden),'Wrong counts must not unlock');
+  assert(await page.$eval('.final-scene',e=>e.classList.contains('incorrect')),'Wrong input needs subdued feedback');
+  await page.evaluate(()=>{for(const input of document.querySelectorAll('.final-digit input'))input.value=''});
+  await page.focus('[name="signal"]');
+  for(const digit of '4241')await page.keyboard.type(digit);
+  await page.tap('.final-confirm');
+  assert(!(await page.$eval('#final-reveal',e=>e.hidden)),'Correct count sequence should form butterfly');
+  assert(await page.$eval('.final-outline',e=>e.hasAttribute('hidden')&&getComputedStyle(e).display==='none'),'Ghost outline must disappear at reveal');
+  assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v3:final')==='1'),'Final solve not stored');
+  await shot('finale-solved-mobile.png');
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert(!(await page.$eval('#final-reveal',e=>e.hidden)),'Finale did not survive reload');
+  await open();
+  assert(await page.$eval('#completion-seal',e=>e.classList.contains('complete')),'Main gallery did not preserve final achievement');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
