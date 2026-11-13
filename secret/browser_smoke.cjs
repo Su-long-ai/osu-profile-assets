@@ -17,8 +17,9 @@ const path=require('node:path');
  await page.setRequestInterception(true);
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
+ const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
  async function open(name=''){
-  const res=await page.goto(base+name+'?v=silent1',{waitUntil:'domcontentloaded',timeout:27000});
+  const res=await page.goto(base+name+'?v='+cacheBuster,{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(res.status(),200,name+' not ready: '+res.status());
   await page.waitForFunction(()=>!!document.querySelector('link[href*="silent.css"]'),{timeout:8000});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'horizontal overflow: '+name);
@@ -107,7 +108,7 @@ const path=require('node:path');
 
   await open('stats.html');
   await wordless();
-  assert.equal(await page.$$eval('[id^="misc-"]',e=>e.length),5);
+  assert.equal(await page.$$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
   assert.equal(await page.$$eval('.stats-history output',e=>e.length),11);
   await shot('stats-mobile.png');
 
