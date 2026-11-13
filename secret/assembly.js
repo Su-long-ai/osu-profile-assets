@@ -86,6 +86,14 @@
     status.textContent = fragments.parts.find(part => part.id === id).name + '已被拿起';
     show();
   }
+  function toggleTray(id) {
+    if(completed || !ids.includes(id)) return;
+    if(selected === id && !placements.includes(id)) {
+      selected = null;
+      status.textContent = '已放下蝶翼碎片';
+      show();
+    } else pick(id);
+  }
   function finish() {
     const firstCompletion = localStorage.getItem(finalKey) !== '1';
     completed = true;
@@ -126,7 +134,7 @@
   });
 
   for (const button of pieces) {
-    button.addEventListener('click', () => pick(button.dataset.piece));
+    button.addEventListener('click', () => toggleTray(button.dataset.piece));
     button.addEventListener('dragstart', event => {
       if (completed) { event.preventDefault(); return; }
       const id = button.dataset.piece;
@@ -203,7 +211,7 @@
       pick(active.id);
       place(Number(target.dataset.slot));
     } else if (!active.moved) {
-      if (active.source.matches('.assembly-piece')) pick(active.source.dataset.piece);
+      if (active.source.matches('.assembly-piece')) toggleTray(active.source.dataset.piece);
       else place(Number(active.source.dataset.slot));
     }
     touchControls = [active.source, target].filter(Boolean);

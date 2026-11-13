@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=19';
+ const expectedCSS='silent.css?v=20';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -53,7 +53,8 @@ const path=require('node:path');
  try{
   await open();
   assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
-  assert(await page.$eval('#completion-seal',el=>el.hidden),'Center should remain empty before any discovery');
+  assert(await page.$eval('#completion-seal',el=>el.hidden && !el.hasAttribute('href')),
+    'Zero-progress center must not expose finale link');
   assert((await page.$$eval('.tile',xs=>xs.filter(x=>getComputedStyle(x).animationName==='tile-breath').length))===4,'Gallery lacks visual discovery cues');
   assert.equal(await page.$eval('.gallery',e=>getComputedStyle(e).position),'relative');
   await wordless();
@@ -87,8 +88,11 @@ const path=require('node:path');
   await open();
   assert(await page.$eval('#completion-seal',el=>!el.hidden),'First found wing should begin the central composition');
   assert.equal(await page.$$eval('.seal-shards > g.found',e=>e.length),1,'Center must show only discovered wing');
+  assert(await page.$eval('#completion-seal',el=>el.getBoundingClientRect().width>=90),
+    'Progress composition should be visible on a standard phone');
   assert(await page.$eval('#completion-seal',el=>!el.classList.contains('ready') &&
-    el.tabIndex<0 && getComputedStyle(el).pointerEvents==='none'),'Partial progress must not open finale');
+    !el.hasAttribute('href') && el.tabIndex<0 && getComputedStyle(el).pointerEvents==='none'),
+    'Partial progress must not expose an actionable finale link');
   await open('chronicle.html');
   await wordless();
   assert.equal(await page.$$eval('[data-day]',e=>e.length),2);
@@ -129,6 +133,11 @@ const path=require('node:path');
   assert(!(await discovered('mirror')),'Wrong four stars must not unlock');
   assert.equal(await page.$$eval('#star-progress circle.on',e=>e.length),4);
   assert(await page.$eval('.star-wrap',e=>e.classList.contains('near-miss')),'Failed selection needs subtle feedback');
+  await page.tap('[data-star="v4"] .star-hit');
+  assert.equal(await page.$$eval('[data-star].chosen',e=>e.length),4,
+    'A fifth star must be rejected, not silently stored with four progress pips');
+  assert(await page.$eval('#star-progress',e=>e.classList.contains('limit')),
+    'Four-selected feedback missing when user tries a fifth star');
   await page.reload({waitUntil:'load'});
   assert.equal(await page.$$eval('[data-star].chosen',e=>e.length),4,'In-progress selections were lost');
   await page.tap('[data-star="v2"] .star-hit');
@@ -175,6 +184,8 @@ const path=require('node:path');
   await open();
   assert.equal(await page.$$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
+  assert(await page.$eval('#completion-seal',e=>e.getAttribute('href')==='./finale.html'),
+    'Completed collection must enable an actual final puzzle link');
   assert(await page.$eval('.seal-shards',e=>getComputedStyle(e).display!=='none'),'Unassembled hub must show separated wing fragments');
   assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display==='none'),'Full butterfly must not spoil the finale');
   const sameArtwork=await page.evaluate(()=>{
@@ -203,6 +214,12 @@ const path=require('node:path');
     'Only a small physical wing root should hint at each position');
   assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),0);
   assert(await page.$eval('#assembly-endmark',e=>e.hidden),'An unfinished butterfly must remain open');
+  await page.tap('.assembly-piece[data-piece="keys"]');
+  assert(await page.$eval('.assembly-piece[data-piece="keys"]',e=>e.getAttribute('aria-pressed')==='true'));
+  await page.tap('.assembly-piece[data-piece="keys"]');
+  assert(await page.$eval('.assembly-piece[data-piece="keys"]',e=>e.getAttribute('aria-pressed')==='false'),
+    'Tapping the held free shard again must cancel selection');
+  assert(await page.$eval('.assembly-board',e=>!e.classList.contains('piece-selected')));
   await wordless();
   await shot('assembly-mobile.png');
 
