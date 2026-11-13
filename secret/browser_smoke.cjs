@@ -166,10 +166,13 @@ const path=require('node:path');
     const stage='misc-keys';
     const key='nb036-analytics-v1:counted:'+stage;
     const owner='nb036-analytics-v1:owner';
+    const backoff='nb036-analytics-v1:service-retry-after';
     const oldFetch=window.fetch;
     const beforeOwner=localStorage.getItem(owner);
+    const beforeBackoff=localStorage.getItem(backoff);
     let calls=0;
     localStorage.removeItem(owner);
+    localStorage.removeItem(backoff); // isolate the simulated success from a prior blocked network call
     localStorage.removeItem(key);
     window.fetch=async(url,...opts)=>{
       if(String(url).includes('/hit/')){calls++;return {ok:true,json:async()=>({value:1})}}
@@ -186,6 +189,7 @@ const path=require('node:path');
     }finally{
       window.fetch=oldFetch;
       if(beforeOwner===null)localStorage.removeItem(owner); else localStorage.setItem(owner,beforeOwner);
+      if(beforeBackoff===null)localStorage.removeItem(backoff); else localStorage.setItem(backoff,beforeBackoff);
     }
   });
   assert(analytics.deduplicated && analytics.ownerExcluded,'Analytics owner / repeat gate failed: '+JSON.stringify(analytics));
