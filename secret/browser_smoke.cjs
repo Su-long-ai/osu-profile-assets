@@ -114,7 +114,7 @@ const path=require('node:path');
 
   await open('orbit.html');
   await wordless();
-  assert.equal(await page.$eval('[data-star][role="button"]',e=>e.length),7);
+  assert.equal(await page.$$eval('[data-star][role="button"]',e=>e.length),7);
   const axisStarGap=await page.evaluate(()=>{
     const a=document.querySelector('#axis-hit').getBoundingClientRect();
     const b=document.querySelector('[data-star="v1"]').getBoundingClientRect();
