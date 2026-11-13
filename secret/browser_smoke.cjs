@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=21';
+ const expectedCSS='silent.css?v=22';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -114,7 +114,15 @@ const path=require('node:path');
 
   await open('orbit.html');
   await wordless();
-  assert.equal(await page.$$eval('[data-star][role="button"]',e=>e.length),7);
+  assert.equal(await page.$eval('[data-star][role="button"]',e=>e.length),7);
+  const axisStarGap=await page.evaluate(()=>{
+    const a=document.querySelector('#axis-hit').getBoundingClientRect();
+    const b=document.querySelector('[data-star="v1"]').getBoundingClientRect();
+    return {overlap:Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*
+      Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)),axisWidth:a.width};
+  });
+  assert(axisStarGap.axisWidth>=43,'Mirror axis is too narrow for touch');
+  assert(axisStarGap.overlap<1,'Mirror axis transparent hitbox overlaps the first candidate');
   assert(await page.$eval('#axis-beacon',e=>!e.hasAttribute('hidden')),'No discoverable symmetry-line cue');
   await page.tap('#axis-hit');
   assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))));
@@ -290,6 +298,21 @@ const path=require('node:path');
   await wordless();
   await shot('index-desktop.png');
 
+  // Hitbox collisions matter even when pictures appear correctly positioned.
+  // The same geometry check covers both portrait and the short landscape layout.
+  const hitAudit=()=>page.evaluate(()=>{
+    const selectors=['.breadcrumb','.utility','.tile-a','.tile-b','.tile-c','.tile-d','#completion-seal'];
+    const rs=selectors.map(s=>{const r=document.querySelector(s).getBoundingClientRect();return {s,r}});
+    const collisions=[];
+    for(let i=0;i<rs.length;i++)for(let j=i+1;j<rs.length;j++){
+      const a=rs[i].r,b=rs[j].r;
+      const area=Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*
+        Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+      if(area>1)collisions.push(rs[i].s+' / '+rs[j].s+': '+Math.round(area));
+    }
+    return collisions;
+  });
+
   // More viewports than the normal screenshot test: small phone, tablet, wide monitor.
   for (const [width,height] of [[320,568],[360,640],[390,844],[428,926],[768,1024],[1280,900],[1920,1080]]) {
     await page.setViewport({width,height,deviceScaleFactor:1,isMobile:width<600,hasTouch:width<600});
@@ -302,19 +325,28 @@ const path=require('node:path');
       assert(r.width>70 && r.left>=-2 && r.right<=width+2,'Tile clipped at '+width+': '+JSON.stringify(r));
       assert(r.top>=0 && r.bottom<=height+2,'Tile inaccessible vertically at '+width+': '+JSON.stringify(r));
     }
-    const overlaps=await page.evaluate(()=>{
-      const selectors=['.breadcrumb','.utility','.tile-a','.tile-b','.tile-c','.tile-d','#completion-seal'];
-      const rects=selectors.map(s=>{const r=document.querySelector(s).getBoundingClientRect();return {s,r}});
-      const collisions=[];
-      for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
-        const a=rects[i].r,b=rects[j].r;
-        const area=Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*
-          Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
-        if(area>1)collisions.push(rects[i].s+' / '+rects[j].s+': '+Math.round(area));
-      }
-      return collisions;
-    });
+    const overlaps=await hitAudit();
     assert.equal(overlaps.length,0,'Overlapping navigation hitboxes at '+width+': '+overlaps.join('; '));
+  }
+  // Very short screens scroll vertically rather than compressing or overlapping
+  // interactive artworks. A short portrait still keeps all work in view.
+  for(const [width,height] of [[390,667],[667,375],[844,390],[915,412],[1024,600]]) {
+    await page.setViewport({width,height,deviceScaleFactor:1,isMobile:width<600,hasTouch:width<600});
+    await open();
+    const bounds=await page.evaluate(()=>({
+      width:document.documentElement.scrollWidth,
+      height:document.documentElement.scrollHeight,
+      tiles:[...document.querySelectorAll('.tile')].map(x=>{
+        const r=x.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+      })
+    }));
+    assert(bounds.width<=width+2,'Landscape introduced horizontal scrolling at '+width);
+    for(const r of bounds.tiles){
+      assert(r.left>=-2&&r.right<=width+2,'Landscape tile clipped horizontally at '+width);
+      assert(r.top>=0&&r.bottom<=bounds.height+2,'Landscape tile unreachable at '+width);
+    }
+    const overlaps=await hitAudit();
+    assert.equal(overlaps.length,0,'Short-screen navigation collision '+width+'x'+height+': '+overlaps.join('; '));
   }
 
   // HTML button keyboard activation must toggle exactly once (not twice).

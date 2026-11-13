@@ -149,3 +149,15 @@ GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、C
 **验证**：puzzle_paper_physical_v21.py、puzzle_playtest_paper_drag_v4.py、puzzle_playtest_paper_hitarea_v3.py、puzzle_playtest_assembly.py、puzzle_keyboard_LOCAL_v21.py、puzzle_playtest_all_24_orders.py、puzzle_playtest_assembly_gestures.py、puzzle_playtest_replay_v17.py、puzzle_playtest_assembly_stats.py、audit_hit_overlaps_v21.py 全部通过。4场景24种排列每种都实操到终章拼好；页面无JavaScript异常。所有测试第三方正式计数写入均模拟/阻断。
 
 静态样式缓存v21，未修改osu!主站BBCode，也未覆盖访客历史发现记录。
+
+## 2026-11-13 · v22 全局响应式与场景点击区域复审
+
+复盘：v21 的两套特殊小屏媒体查询能通过常规视口，却没有覆盖 361/520/521/700/721px 等交界点。新增 `audit_breakpoints_v22.py` 对 17 种宽度×15种高度（总计255组）测量主页面全部7个可点击矩形，初次发现113组存在冲突或裁切。单纯增加更多媒体查询不是解决方案。
+
+真正修复：`#completion-seal` 移入相同的 `.gallery` 相对定位容器，蝶翼与四幅作品由同一坐标系排布。宽屏 gallery 最小高度700px，短横屏允许纵向滚动；手机 gallery 高度按 165vw、视口高度和最低520px取最大，保证上、下行之间有足够空间。蝶翼在普通手机置于左侧翼间的空白带，在足够高的手机回到两列之间；521–770px 使用80px蝶翼以避免与图块竞争空间。手机纸张图从76%上移至70%，修复极短屏底部8px裁切。**255/255 组无矩形重叠、无水平溢出、没有超出可滚动内容范围的图块**，320×568、390×667/844、667×375等截图人工检查。
+
+更深一层的点击框审计 `audit_scene_controls_v22.py` 发现镜像星图的中央观察轴透明按钮在320、390、768和1280宽度都覆盖候选星v1的部分触摸框。把它变成向左偏10px的44px宽按钮后，四个尺寸五个场景全部无矩形交叠，全部操作目标中心坐标可独立命中。独立实操 `puzzle_orbit_axis_star_v22.py` 在4种宽度确认：点轴只切换轴，点星只选择/取消候选；未提前解锁。清理 CSS 中曾把HTML轴按钮误当SVG内部后代的无效样式。
+
+osu! BBCode v13.1 隐藏星点进一步测试：原48×20锚点边界来自osu!个人介绍固定400px内滚动容器的裁切，非图片本身大小不足。内部滚动到底以后48×48图片上从10%到90%高度的5个位置全部命中同一链接；保留线上 v13.1，不为浏览器布局限制再次重做BBCode。
+
+仓库源文件 CSS 缓存v22，`browser_smoke.cjs` 新增候选星与轴互不覆盖、短横屏可滚动无重叠的回归。访客历史、计数去重、osu!资料页主视觉均保持。
