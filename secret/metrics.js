@@ -7,6 +7,21 @@
   const ownerHash = '6663b92aa7d5824b0a68e33c01b0cf8cbf821b6cb370b449981d017c362fc268';
   const allowed = new Set(['b-side', 'c-side', 'd-side', 'star-whisper', 'e-side', 'case-signal', 'case-chronicle', 'case-orbit', 'case-final', 'case-true', 'misc-keys', 'misc-dates', 'misc-mirror', 'misc-margin']);
   const pending = new Set();
+  const backoffKey = prefix + 'service-retry-after';
+  async function request(url, options) {
+    if (Date.now() < Number(localStorage.getItem(backoffKey) || 0))
+      throw new Error('Counter service temporarily unavailable');
+    try {
+      const response = await fetch(url, {...options, signal: AbortSignal.timeout(7000)});
+      if (response.status === 403 || response.status === 429)
+        localStorage.setItem(backoffKey, String(Date.now() + 10 * 60 * 1000));
+      return response;
+    } catch (error) {
+      if (error.name === 'TimeoutError' || error.name === 'TypeError')
+        localStorage.setItem(backoffKey, String(Date.now() + 60 * 1000));
+      throw error;
+    }
+  }
 
   async function activateOwner() {
     const hash = location.hash || '';
@@ -42,7 +57,7 @@
     try {
       // Each browser counts each stage once, with only local storage markers; no visitor ID is sent.
       const url = root + 'hit/' + counterKey(stage);
-      const response = await fetch(url, {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer',keepalive:true});
+      const response = await request(url, {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer',keepalive:true});
       if (!response.ok) throw new Error('Counting temporarily unavailable: ' + response.status);
       const data = await response.json();
       if (typeof data.value !== 'number') throw new Error('Unexpected counter response');
@@ -55,7 +70,7 @@
 
   async function count(stage) {
     if (!allowed.has(stage)) return null;
-    const response = await fetch(root + 'get/' + counterKey(stage),
+    const response = await request(root + 'get/' + counterKey(stage),
       {mode:'cors',cache:'no-store',referrerPolicy:'no-referrer'});
     // A never-used stage key returns 404; display zero instead of a network error.
     if (response.status === 404) return 0;
