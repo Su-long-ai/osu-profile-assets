@@ -68,7 +68,7 @@
       const left = i % 2 === 0;
       const x = (left ? 0 : 142) + (broken ? (left ? -15 : 15) : 0);
       const y = (i < 2 ? 0 : 115) + (broken ? (i < 2 ? -11 : 11) : 0);
-      return '<g transform="translate(' + x + ' ' + y + ')">' +
+      return '<g data-mini-part="' + part.id + '" transform="translate(' + x + ' ' + y + ')">' +
         '<path d="' + part.contour + '" stroke="' + part.color + '" stroke-width="2.8" fill="none"/>' +
         '<g stroke="' + part.color + '" fill="none" stroke-width="1.5" opacity=".58">' + part.veins + '</g></g>';
     }).join('');

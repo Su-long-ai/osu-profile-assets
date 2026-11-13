@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=18';
+ const expectedCSS='silent.css?v=19';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -53,6 +53,7 @@ const path=require('node:path');
  try{
   await open();
   assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
+  assert(await page.$eval('#completion-seal',el=>el.hidden),'Center should remain empty before any discovery');
   assert((await page.$$eval('.tile',xs=>xs.filter(x=>getComputedStyle(x).animationName==='tile-breath').length))===4,'Gallery lacks visual discovery cues');
   assert.equal(await page.$eval('.gallery',e=>getComputedStyle(e).position),'relative');
   await wordless();
@@ -83,7 +84,11 @@ const path=require('node:path');
   assert(!(await page.$eval('#afterglow',e=>e.hasAttribute('hidden'))),'correct keys not resolved');
   assert(await discovered('keys'));
   assert(await page.$eval('#key-progress',e=>e.hasAttribute('hidden')),'Completed progress should be replaced by final mark');
-
+  await open();
+  assert(await page.$eval('#completion-seal',el=>!el.hidden),'First found wing should begin the central composition');
+  assert.equal(await page.$$eval('.seal-shards > g.found',e=>e.length),1,'Center must show only discovered wing');
+  assert(await page.$eval('#completion-seal',el=>!el.classList.contains('ready') &&
+    el.tabIndex<0 && getComputedStyle(el).pointerEvents==='none'),'Partial progress must not open finale');
   await open('chronicle.html');
   await wordless();
   assert.equal(await page.$$eval('[data-day]',e=>e.length),2);

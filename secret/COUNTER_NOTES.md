@@ -114,3 +114,11 @@ GitHub Actions `secret-analytics-smoke.yml` 已对计数 API 写入、读取、C
 - 缓存版本 CSS v18、fragments v3、assembly v3。
 
 验收：本地 `puzzle_playtest_assembly.py`、`puzzle_playtest_hub_seal_v4.py`、`puzzle_playtest_replay_v17.py`、`puzzle_playtest_assembly_gestures.py`、`puzzle_playtest_assembly_stats.py`、纯键盘 `puzzle_playtest_keyboard_end_to_end.py`、24 种访问顺序 `puzzle_playtest_all_24_orders.py`、图像对照均运行。测试时模拟/拦截正式计数写入。已有用户状态完整保留。
+
+## 2026-11-13 · 首页逐片汇合引导（v19）
+
+进一步反思发现，原来要等全部四关完成，首页中央才突然出现四片碎翼；各房间虽然给出碎片，首页却没有接住它们，线索与终章的联系仍不自然。
+
+本轮改为 **0片时隐藏、1–3片时首页中央只绘出已发现的真实同源翼片、4片时浮出完整的分离组合并可点击进入终章**。未收集全部四片时链接处于 aria-disabled、tabIndex=-1、pointer-events:none，不会错误进入最终页。已经通关的整蝶显示及旧状态不变。
+
+图像仍完全来自 `NBFragments.parts` 的原路径，没有为首页重新画一套近似图；没有可见说明文字。旧统计、旧玩家、24种探索顺序与重玩均沿用现有兼容逻辑。样式缓存 v19，碎片脚本 v4。实测 `puzzle_preview_progress_v19.py` 逐级 0–4 个状态全部 PASS，并保存 390px 真实手机截图；`puzzle_playtest_all_24_orders.py` 改为校验每步的碎片数量、不可提前激活和完成后可进入。
