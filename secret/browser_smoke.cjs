@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=27';
+ const expectedCSS='silent.css?v=28';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -77,6 +77,7 @@ const path=require('node:path');
   for(const k of ['F','D'])await page.tap('[data-lane="'+k+'"] rect');
   assert(await page.$eval('#afterglow',e=>e.hasAttribute('hidden')),'wrong key order revealed hidden mark');
   assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),0,'Wrong input should reset progress');
+  assert(await page.$eval('#key-progress',el=>el.classList.contains('wrong-order')),'Wrong rhythm should have distinct visual feedback');
   for(const [i,k] of ['J','K','D','F'].entries()){
     if(i===0)await page.tap('.hold-note[data-hold="'+k+'"]');
     else await page.keyboard.press(k.toLowerCase());
