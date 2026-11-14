@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=25';
+ const expectedCSS='silent.css?v=26';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -80,11 +80,11 @@ const path=require('node:path');
   for(const [i,k] of ['J','K','D','F'].entries()){
     if(i===0)await page.tap('.hold-note[data-hold="'+k+'"]');
     else await page.keyboard.press(k.toLowerCase());
-    if(i<3)assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input progress did not respond at '+k);
+    if(i<3)assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input progress did not respond at '+k);
     if(i===1){
       await page.reload({waitUntil:'load'});
-      assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),2,'Partial rhythm should survive refresh');
-      assert.equal(await page.$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).join('')),'JK','Accepted notes should remain visibly marked');
+      assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),2,'Partial rhythm should survive refresh');
+      assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).join('')),'JK','Accepted notes should remain visibly marked');
     }
   }
   assert(!(await page.$eval('#afterglow',e=>e.hasAttribute('hidden'))),'correct keys not resolved');
@@ -228,6 +228,10 @@ const path=require('node:path');
     await open(room);
     assert.equal(await page.$$eval('.fragment-stamp:not([hidden]) .fragment-art',e=>e.length),1,
       'Solved room lost the actual wing fragment: '+room);
+    assert.equal(await page.$eval('.fragment-stamp',el=>el.tagName),'A','Wing should be a semantic return link');
+    await page.tap('.fragment-stamp:not([hidden])');
+    await page.waitForFunction(()=>location.pathname.endsWith('/secret/'));
+    await page.waitForSelector('.completion-seal.ready');
   }
   await open();
   await page.tap('#completion-seal');

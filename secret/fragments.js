@@ -84,11 +84,11 @@
     const id = lookup[page];
     const visual = document.querySelector('.workbench .visual');
     if (!id || !visual) return;
-    const stamp = document.createElement('div');
+    const stamp = document.createElement('a');
+    stamp.href = './';
     stamp.className = 'fragment-stamp';
     stamp.hidden = true;
-    stamp.setAttribute('role', 'img');
-    stamp.setAttribute('aria-label', byId[id].name);
+    stamp.setAttribute('aria-label', byId[id].name+'，返回图集');
     stamp.innerHTML = '<span class="fragment-hairline" aria-hidden="true"></span>' + svg(id);
     visual.append(stamp);
     const update = () => {
