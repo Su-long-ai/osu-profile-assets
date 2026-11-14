@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=35';
+ const expectedCSS='silent.css?v=36';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -74,10 +74,18 @@ const path=require('node:path');
   assert.equal(await page.$$eval('#key-progress circle',xs=>xs.length),4,'No four-beat input feedback');
   await wordless();
   await shot('keys-mobile.png');
-  for(const k of ['F','D'])await page.tap('[data-lane="'+k+'"] rect');
-  assert(await page.$eval('#afterglow',e=>e.hasAttribute('hidden')),'wrong key order revealed hidden mark');
-  assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),0,'Wrong input should reset progress');
-  assert(await page.$eval('#key-progress',el=>el.classList.contains('wrong-order')),'Wrong rhythm should have distinct visual feedback');
+  for(const [i,k] of ['S','SPACE','L','S'].entries()){
+   await page.tap('[data-lane="'+k+'"] rect');
+   if(i<3){
+    assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input count should advance without judging correctness');
+    assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.length),0,'Partial input must not reveal correct lanes');
+    assert(!(await page.$eval('#key-progress',el=>el.classList.contains('wrong-order'))),'Partial input leaked correctness');
+   }
+  }
+  assert(await page.$eval('#afterglow',e=>e.hasAttribute('hidden')),'wrong full sequence revealed hidden mark');
+  assert(await page.$eval('#key-progress',el=>el.classList.contains('wrong-order')),'Wrong full sequence lacks feedback');
+  await page.waitForFunction(()=>document.querySelectorAll('#key-progress circle.on').length===0&&!document.querySelector('#key-progress').classList.contains('wrong-order'));
+  assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.length),0,'Wrong sequence left correctness marks');
   for(const [i,k] of ['J','K','D','F'].entries()){
     if(i===0)await page.tap('.hold-note[data-hold="'+k+'"]');
     else await page.keyboard.press(k.toLowerCase());
@@ -85,12 +93,13 @@ const path=require('node:path');
     if(i===1){
       await page.reload({waitUntil:'load'});
       assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),2,'Partial rhythm should survive refresh');
-      assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).join('')),'JK','Accepted notes should remain visibly marked');
+      assert.equal(await page.$eval('.hold-note.accepted',xs=>xs.length),0,'Partial sequence must survive without revealing correct lanes');
     }
   }
   assert(!(await page.$eval('#afterglow',e=>e.hasAttribute('hidden'))),'correct keys not resolved');
   assert(await discovered('keys'));
   assert(await page.$eval('#key-progress',e=>e.hasAttribute('hidden')),'Completed progress should be replaced by final mark');
+  assert.equal(await page.$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).sort().join(',')),'D,F,J,K','Only the recovered four-note phrase should illuminate after completion');
   await open();
   assert(await page.$eval('#completion-seal',el=>!el.hidden),'First found wing should begin the central composition');
   assert.equal(await page.$$eval('.seal-shards > g.found',e=>e.length),1,'Center must show only discovered wing');
