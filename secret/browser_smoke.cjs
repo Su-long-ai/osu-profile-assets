@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=43';
+ const expectedCSS='silent.css?v=44';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -55,6 +55,9 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
   assert(await page.$eval('#completion-seal',el=>el.hidden && !el.hasAttribute('href')),
     'Zero-progress center must not expose finale link');
+  assert.equal(await page.$eval('.archive-link',xs=>xs.length),4,'Post-completion archive needs four source links');
+  assert.equal(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity),'0','Archive map must stay hidden before completion');
+  assert.equal(await page.$eval('.archive-map',e=>getComputedStyle(e).pointerEvents),'none','Archive map must never intercept play');
   assert(await page.$eval('.tile',xs=>xs.every(x=>getComputedStyle(x).animationName==='none')),
     'Gallery cards themselves must stay still');
   const galleryCueNames=await page.evaluate(()=>[
@@ -300,6 +303,12 @@ const path=require('node:path');
   assert((await page.$eval('.assembly-core-mark',e=>Number(getComputedStyle(e).opacity)))<.01,'Four-root core must disappear after completion');
   assert((await page.$eval('.assembly-spine',e=>Number(getComputedStyle(e).opacity)))>.99,'Butterfly body must appear only after completion');
   assert.equal(await page.$eval('#assembly-home',e=>e.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Completed butterfly must return to the source profile');
+  await page.goto(base+'?v='+cacheBuster+'-joined',{waitUntil:'load',timeout:27000});
+  assert(await page.$eval('.gallery',e=>e.classList.contains('joined')),'Completed gallery must enter joined archive state');
+  assert(Number(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity))>.5,'Joined archive map must become visible');
+  assert.equal(await page.$eval('.archive-root',xs=>xs.length),4,'Joined archive must show four corresponding roots');
+  await page.goto(base+'finale.html?v='+cacheBuster+'-joined-return',{waitUntil:'load',timeout:27000});
+  assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),'Returning to finale must restore the completed assembly');
   await page.focus('#assembly-home');
   const homeFocus=await page.evaluate(()=>({
     outline:getComputedStyle(document.querySelector('#assembly-home')).outlineStyle,
