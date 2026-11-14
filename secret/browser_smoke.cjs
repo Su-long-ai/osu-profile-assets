@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=24';
+ const expectedCSS='silent.css?v=25';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -80,7 +80,12 @@ const path=require('node:path');
   for(const [i,k] of ['J','K','D','F'].entries()){
     if(i===0)await page.tap('.hold-note[data-hold="'+k+'"]');
     else await page.keyboard.press(k.toLowerCase());
-    if(i<3)assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input progress did not respond at '+k);
+    if(i<3)assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input progress did not respond at '+k);
+    if(i===1){
+      await page.reload({waitUntil:'load'});
+      assert.equal(await page.$eval('#key-progress circle.on',xs=>xs.length),2,'Partial rhythm should survive refresh');
+      assert.equal(await page.$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).join('')),'JK','Accepted notes should remain visibly marked');
+    }
   }
   assert(!(await page.$eval('#afterglow',e=>e.hasAttribute('hidden'))),'correct keys not resolved');
   assert(await discovered('keys'));
@@ -104,6 +109,9 @@ const path=require('node:path');
   await page.tap('[data-day="ln"]');
   assert(await page.$eval('#interval',e=>e.hidden));
   assert(await page.$eval('.dates',e=>e.classList.contains('has-one')),'First date gives no visual feedback');
+  await page.reload({waitUntil:'load'});
+  assert(await page.$eval('.dates',e=>e.classList.contains('has-one')),'Date start should survive refresh');
+  assert(await page.$eval('#interval',e=>e.hidden),'Resuming date start should not complete it');
   await page.tap('[data-day="regular"]');
   assert.equal(await page.$eval('#interval',e=>e.textContent.trim()),'154');
   assert(!(await page.$eval('#interval',e=>e.hidden)));

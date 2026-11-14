@@ -8,6 +8,7 @@
   const finalKey = 'nb036-misc-v4:joined';
   const boardKey = 'nb036-assembly-v1:slots';
   const replayKey = 'nb036-assembly-v2:replay';
+  const reportKey = 'nb036-analytics-v1:assembly-unreported';
   if (!ids.every(id => localStorage.getItem(oldKey(id)) === '1')) {
     location.replace('./');
     return;
@@ -94,6 +95,17 @@
       show();
     } else pick(id);
   }
+  async function reportPendingCompletion() {
+    if (localStorage.getItem(reportKey)!=='1') return;
+    const metrics=window.nightButterflyMetrics;
+    if (!metrics) return;
+    await metrics.ready;
+    const owner=localStorage.getItem('nb036-analytics-v1:owner')==='1';
+    const counted=()=>localStorage.getItem('nb036-analytics-v1:counted:misc-assembly')==='1';
+    if(owner || counted()){localStorage.removeItem(reportKey);return}
+    await metrics.record('misc-assembly');
+    if(counted())localStorage.removeItem(reportKey);
+  }
   function finish() {
     const firstCompletion = localStorage.getItem(finalKey) !== '1';
     completed = true;
@@ -105,7 +117,10 @@
     show();
     status.textContent = '四片碎翼拼合，夜蝶完整显现';
     // Reassembling the same butterfly never counts as a new solver.
-    if (firstCompletion) window.nightButterflyMetrics?.record('misc-assembly').catch(() => {});
+    if (firstCompletion) {
+      localStorage.setItem(reportKey,'1');
+      reportPendingCompletion().catch(()=>{});
+    }
   }
   function place(index) {
     if (completed) return;
@@ -222,4 +237,7 @@
     document.querySelector('#assembly-drag-preview')?.remove();
   });
   show();
+  // Only retry explicitly queued first completions from this version onward.
+  // Historical solvers and ordinary replay never create a pending report.
+  reportPendingCompletion().catch(()=>{});
 })();
