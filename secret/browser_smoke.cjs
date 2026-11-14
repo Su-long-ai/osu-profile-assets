@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=45';
+ const expectedCSS='silent.css?v=46';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -229,7 +229,10 @@ const path=require('node:path');
 
   await open('stats.html');
   await wordless();
-  assert.equal(await page.$$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
+  assert.equal(await page.$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
+  assert.equal(await page.$eval('.stats-spoke',xs=>xs.length),4,'Stats map needs four parallel source spokes');
+  assert.equal(await page.$eval('.stats-tip',xs=>xs.length),4,'Stats map needs four source tips');
+  assert.equal(await page.$eval('.stats-assembly-ring',xs=>xs.length),1,'Stats map needs one assembly hub');
   assert.equal(await page.$$eval('.stats-history output',e=>e.length),11);
   await page.waitForFunction(()=>[...document.querySelectorAll('.stats-scene > .stats-row output')].every(e=>e.textContent==='—'),{timeout:12000});
   assert(await page.$$eval('.stats-scene > .stats-row output',xs=>xs.every(x=>x.getAttribute('aria-label').includes('不代表零次'))),'Failed reads must not imply zero or distinct people');
