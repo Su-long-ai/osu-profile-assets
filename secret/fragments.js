@@ -62,31 +62,22 @@
       outline + details + '</svg>';
   }
   function miniSeal() {
-    // The same source contours must appear in the rooms, assembly, and home.
-    // Before completion the four wings are displaced, never a second drawing.
-    const brokenLayout = [
-      [8, 8, -20],      // keys: specimen-like, not its eventual wing position
-      [8, 132, 15],     // dates
-      [154, 8, 17],     // mirror
-      [154, 132, -16]   // margin
-    ];
-    const paint = broken => parts.map((part, i) => {
-      let x, y, rotate = 0;
-      if (broken) [x, y, rotate] = brokenLayout[i];
-      else {
-        const left = i % 2 === 0;
-        x = left ? 0 : 142;
-        y = i < 2 ? 0 : 115;
-      }
-      const transform = 'translate(' + x + ' ' + y + ')' +
-        (rotate ? ' rotate(' + rotate + ' 71 57.5)' : '');
-      return '<g data-mini-part="' + part.id + '" transform="' + transform + '">' +
+    // Before assembly, reveal only four physical root nodes: enough to signal
+    // closure, never enough to preview the butterfly silhouette.
+    const full = parts.map((part, i) => {
+      const left = i % 2 === 0;
+      const x = left ? 0 : 142;
+      const y = i < 2 ? 0 : 115;
+      return '<g data-mini-part="' + part.id + '" transform="translate(' + x + ' ' + y + ')">' +
         '<path d="' + part.contour + '" stroke="' + part.color + '" stroke-width="2.8" fill="none"/>' +
         '<g stroke="' + part.color + '" fill="none" stroke-width="1.5" opacity=".58">' + part.veins + '</g></g>';
     }).join('');
     return '<svg viewBox="-18 -12 316 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<g class="seal-shards">' + paint(true) + '</g>' +
-      '<g class="seal-wings">' + paint(false) + '</g>' +
+      '<g class="seal-ready-mark" fill="none" stroke="#8ca9af" stroke-width="1.5">' +
+      '<circle cx="102" cy="86" r="6"/><circle cx="178" cy="86" r="6"/>' +
+      '<circle cx="102" cy="166" r="6"/><circle cx="178" cy="166" r="6"/>' +
+      '<path d="M108 86H172M102 92V160M178 92V160M108 166H172" opacity=".38"/></g>' +
+      '<g class="seal-wings">' + full + '</g>' +
       '<path class="seal-body" d="M140 98V155M140 105Q131 86 122 80M140 105Q149 86 158 80" ' +
       'stroke="#8ca9af" stroke-width="1.7" fill="none" opacity=".64"/></svg>';
   }

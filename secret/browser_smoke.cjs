@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=37';
+ const expectedCSS='silent.css?v=39';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -101,14 +101,7 @@ const path=require('node:path');
   assert(await page.$eval('#key-progress',e=>e.hasAttribute('hidden')),'Completed progress should be replaced by final mark');
   assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).sort().join(',')),'D,F,J,K','Only the recovered four-note phrase should illuminate after completion');
   await open();
-  assert(await page.$eval('#completion-seal',el=>!el.hidden),'First found wing should begin the central composition');
-  assert.equal(await page.$eval('#completion-seal .seal-body',e=>getComputedStyle(e).display),'none','Gallery fragments must not reveal the butterfly body before assembly');
-  assert.equal(await page.$$eval('.seal-shards > g.found',e=>e.length),1,'Center must show only discovered wing');
-  assert(await page.$eval('#completion-seal',el=>el.getBoundingClientRect().width>=90),
-    'Progress composition should be visible on a standard phone');
-  assert(await page.$eval('#completion-seal',el=>!el.classList.contains('ready') &&
-    !el.hasAttribute('href') && el.tabIndex<0 && getComputedStyle(el).pointerEvents==='none'),
-    'Partial progress must not expose an actionable finale link');
+  assert(await page.$eval('#completion-seal',el=>el.hidden),'Partial progress must stay in the solved illustration, not create a premature centre object');
   await open('chronicle.html');
   await wordless();
   assert.equal(await page.$$eval('[data-day]',e=>e.length),7);
@@ -230,6 +223,7 @@ const path=require('node:path');
   await open();
   assert.equal(await page.$$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
+  assert.equal(await page.$eval('#completion-seal .seal-ready-mark',e=>getComputedStyle(e).display),'inline','Ready state must use the neutral four-root mark');
   assert(await page.$eval('#completion-seal',e=>e.getAttribute('href')==='./finale.html'),
     'Completed collection must enable an actual final puzzle link');
   assert(await page.$eval('.seal-shards',e=>getComputedStyle(e).display!=='none'),'Unassembled hub must show separated wing fragments');
