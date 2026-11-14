@@ -226,14 +226,9 @@ const path=require('node:path');
   assert.equal(await page.$eval('#completion-seal .seal-ready-mark',e=>getComputedStyle(e).display),'inline','Ready state must use the neutral four-root mark');
   assert(await page.$eval('#completion-seal',e=>e.getAttribute('href')==='./finale.html'),
     'Completed collection must enable an actual final puzzle link');
-  assert(await page.$eval('.seal-shards',e=>getComputedStyle(e).display!=='none'),'Unassembled hub must show separated wing fragments');
+  assert.equal(await page.$eval('.seal-ready-mark circle',xs=>xs.length),4,'Ready mark must expose exactly four root nodes');
+  assert(await page.$eval('.seal-body',e=>getComputedStyle(e).display==='none'),'Butterfly body must stay hidden before assembly');
   assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display==='none'),'Full butterfly must not spoil the finale');
-  const sameArtwork=await page.evaluate(()=>{
-    const source=window.NBFragments.parts.map(p=>p.contour);
-    const preview=[...document.querySelectorAll('.seal-shards > g > path')].map(p=>p.getAttribute('d'));
-    return source.length===4 && source.every((d,i)=>d===preview[i]);
-  });
-  assert(sameArtwork,'Home butterfly differs from the four original wing outlines');
   await wordless();
   await shot('all-found-mobile.png');
 
@@ -322,8 +317,15 @@ const path=require('node:path');
   assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),'Completed drawing lost on refresh');
   await open();
   assert(await page.$eval('#completion-seal',e=>e.classList.contains('complete')),'Gallery did not retain completed butterfly');
-  assert(await page.$eval('.seal-shards',e=>getComputedStyle(e).display==='none'),'Finished hub still shows unassembled shards');
+  assert(await page.$eval('.seal-ready-mark',e=>getComputedStyle(e).display==='none'),'Finished hub still shows the ready mark');
   assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display!=='none'),'Finished hub did not reveal full butterfly');
+  assert(await page.$eval('.seal-body',e=>getComputedStyle(e).display!=='none'),'Finished hub did not reveal the butterfly body');
+  const sameArtwork=await page.evaluate(()=>{
+    const source=window.NBFragments.parts.map(p=>p.contour);
+    const preview=[...document.querySelectorAll('.seal-wings > g > path')].map(p=>p.getAttribute('d'));
+    return source.length===4 && source.every((d,i)=>d===preview[i]);
+  });
+  assert(sameArtwork,'Finished home butterfly differs from the four original wing outlines');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
