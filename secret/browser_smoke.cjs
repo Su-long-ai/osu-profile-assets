@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=26';
+ const expectedCSS='silent.css?v=27';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -205,6 +205,8 @@ const path=require('node:path');
   await wordless();
   assert.equal(await page.$$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
   assert.equal(await page.$$eval('.stats-history output',e=>e.length),11);
+  await page.waitForFunction(()=>[...document.querySelectorAll('.stats-scene > .stats-row output')].every(e=>e.textContent==='—'),{timeout:12000});
+  assert(await page.$$eval('.stats-scene > .stats-row output',xs=>xs.every(x=>x.getAttribute('aria-label').includes('不代表零次'))),'Failed reads must not imply zero or distinct people');
   await shot('stats-mobile.png');
 
   await open();
