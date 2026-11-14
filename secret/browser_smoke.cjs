@@ -205,7 +205,7 @@ const path=require('node:path');
     'Picking the loose hook should reveal its stem target');
   assert(!(await page.$eval('#paper',e=>e.classList.contains('corrected'))),
     'The revealing touch must not click through and solve the hook');
-  await page.waitForTimeout(360);
+  await new Promise(resolve=>setTimeout(resolve,360));
   await page.tap('#ink-socket');
   assert(!(await page.$eval('#correction',e=>e.hasAttribute('hidden'))));
   assert(await page.$eval('#paper',e=>e.classList.contains('corrected')));
