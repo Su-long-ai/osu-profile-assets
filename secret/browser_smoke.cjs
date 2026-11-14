@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=33';
+ const expectedCSS='silent.css?v=34';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -60,9 +60,9 @@ const path=require('node:path');
   await wordless();
   await shot('index-mobile.png');
   await open('signal.html');
-  assert.equal(await page.$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),7);
-  assert.equal(await page.$eval('.hold-note[role="button"][tabindex="0"]',xs=>xs.length),7,'The visible long notes must be real accessible controls');
-  assert.equal(await page.$$eval('[data-lane]',xs=>xs.length),4);
+  assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),7);
+  assert.equal(await page.$$eval('.hold-note[role="button"][tabindex="0"]',xs=>xs.length),7,'The visible long notes must be real accessible controls');
+  assert.equal(await page.$$eval('[data-lane]',xs=>xs.length),7);
   const capInspect=await page.evaluate(()=>({
     caps:[...document.querySelectorAll('.key-cap')].map(x=>({x:x.getAttribute('x'),parent:x.parentElement?.dataset?.lane})),
     lanes:[...document.querySelectorAll('[data-lane]')].map(x=>({lane:x.dataset.lane,cap:x.querySelectorAll('.key-cap').length,html:x.outerHTML.slice(0,300)})),
@@ -70,7 +70,7 @@ const path=require('node:path');
     url:location.href
   }));
   console.log('SVG_CAP_DIAGNOSTIC',JSON.stringify(capInspect));
-  assert.equal(await page.$eval('.key-cap',xs=>xs.length),7,'Invisible lane buttons remain: '+JSON.stringify(capInspect.caps));
+  assert.equal(await page.$$eval('.key-cap',xs=>xs.length),7,'Invisible lane buttons remain: '+JSON.stringify(capInspect.caps));
   assert.equal(await page.$$eval('#key-progress circle',xs=>xs.length),4,'No four-beat input feedback');
   await wordless();
   await shot('keys-mobile.png');
@@ -101,10 +101,10 @@ const path=require('node:path');
     'Partial progress must not expose an actionable finale link');
   await open('chronicle.html');
   await wordless();
-  assert.equal(await page.$eval('[data-day]',e=>e.length),7);
+  assert.equal(await page.$$eval('[data-day]',e=>e.length),7);
   assert.equal(await page.$$eval('.week-marks i',e=>e.length),22,'154 days should be drawn as 22 real weeks');
   assert(await page.$eval('#interval',e=>e.hidden));
-  assert.equal(await page.$eval('.date-row',xs=>xs.length),7,'All real archive dates must be available');
+  assert.equal(await page.$$eval('.date-row',xs=>xs.length),7,'All real archive dates must be available');
   assert(await page.$eval('#time-thread',e=>e.hidden),'Do not reveal the answer before choosing');
   await page.tap('[data-day="r00"]');
   await page.tap('[data-day="r01"]');
@@ -128,6 +128,7 @@ const path=require('node:path');
   await shot('dates-mobile.png');
 
   await open('orbit.html');
+  assert.equal(await page.$eval('.source-reference',a=>a.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Mirror room must point back to the profile artwork');
   await wordless();
   assert.equal(await page.$$eval('[data-star][role="button"]',e=>e.length),7);
   const axisStarGap=await page.evaluate(()=>{
