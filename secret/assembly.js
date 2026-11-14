@@ -117,7 +117,7 @@
     localStorage.setItem(finalKey, '1');
     localStorage.removeItem(replayKey);
     show();
-    status.textContent = '四片碎翼拼合，夜蝶完整显现。点按夜蝶返回图集，或点按下方环形标记重新拼合';
+    status.textContent = '四片碎翼拼合，夜蝶完整显现。点按夜蝶返回 osu! 主页，或点按下方环形标记重新拼合';
     // Reassembling the same butterfly never counts as a new solver.
     if (firstCompletion) {
       localStorage.setItem(reportKey,'1');

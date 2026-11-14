@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=36';
+ const expectedCSS='silent.css?v=37';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -102,6 +102,7 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).sort().join(',')),'D,F,J,K','Only the recovered four-note phrase should illuminate after completion');
   await open();
   assert(await page.$eval('#completion-seal',el=>!el.hidden),'First found wing should begin the central composition');
+  assert.equal(await page.$eval('#completion-seal .seal-body',e=>getComputedStyle(e).display),'none','Gallery fragments must not reveal the butterfly body before assembly');
   assert.equal(await page.$$eval('.seal-shards > g.found',e=>e.length),1,'Center must show only discovered wing');
   assert(await page.$eval('#completion-seal',el=>el.getBoundingClientRect().width>=90),
     'Progress composition should be visible on a standard phone');
@@ -290,7 +291,8 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),4,
     'Completed butterfly must visibly connect its four wings');
   assert(!(await page.$eval('#assembly-endmark',e=>e.hidden)),'Joined wing closure not shown');
-  assert(!(await page.$eval('#assembly-home',e=>e.hidden)),'Completed butterfly must return to the gallery');
+  assert(!(await page.$eval('#assembly-home',e=>e.hidden)),'Completed butterfly must expose its return link');
+  assert.equal(await page.$eval('#assembly-home',e=>e.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Completed butterfly must return to the source profile');
   await page.focus('#assembly-home');
   const homeFocus=await page.evaluate(()=>({
     outline:getComputedStyle(document.querySelector('#assembly-home')).outlineStyle,

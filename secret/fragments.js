@@ -64,18 +64,30 @@
   function miniSeal() {
     // The same source contours must appear in the rooms, assembly, and home.
     // Before completion the four wings are displaced, never a second drawing.
+    const brokenLayout = [
+      [8, 8, -20],      // keys: specimen-like, not its eventual wing position
+      [8, 132, 15],     // dates
+      [154, 8, 17],     // mirror
+      [154, 132, -16]   // margin
+    ];
     const paint = broken => parts.map((part, i) => {
-      const left = i % 2 === 0;
-      const x = (left ? 0 : 142) + (broken ? (left ? -15 : 15) : 0);
-      const y = (i < 2 ? 0 : 115) + (broken ? (i < 2 ? -11 : 11) : 0);
-      return '<g data-mini-part="' + part.id + '" transform="translate(' + x + ' ' + y + ')">' +
+      let x, y, rotate = 0;
+      if (broken) [x, y, rotate] = brokenLayout[i];
+      else {
+        const left = i % 2 === 0;
+        x = left ? 0 : 142;
+        y = i < 2 ? 0 : 115;
+      }
+      const transform = 'translate(' + x + ' ' + y + ')' +
+        (rotate ? ' rotate(' + rotate + ' 71 57.5)' : '');
+      return '<g data-mini-part="' + part.id + '" transform="' + transform + '">' +
         '<path d="' + part.contour + '" stroke="' + part.color + '" stroke-width="2.8" fill="none"/>' +
         '<g stroke="' + part.color + '" fill="none" stroke-width="1.5" opacity=".58">' + part.veins + '</g></g>';
     }).join('');
     return '<svg viewBox="-18 -12 316 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<g class="seal-shards">' + paint(true) + '</g>' +
       '<g class="seal-wings">' + paint(false) + '</g>' +
-      '<path d="M140 98V155M140 105Q131 86 122 80M140 105Q149 86 158 80" ' +
+      '<path class="seal-body" d="M140 98V155M140 105Q131 86 122 80M140 105Q149 86 158 80" ' +
       'stroke="#8ca9af" stroke-width="1.7" fill="none" opacity=".64"/></svg>';
   }
   function mountStamp() {
