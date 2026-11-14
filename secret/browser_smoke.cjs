@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=42';
+ const expectedCSS='silent.css?v=43';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -55,7 +55,16 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
   assert(await page.$eval('#completion-seal',el=>el.hidden && !el.hasAttribute('href')),
     'Zero-progress center must not expose finale link');
-  assert((await page.$$eval('.tile',xs=>xs.filter(x=>getComputedStyle(x).animationName==='tile-breath').length))===4,'Gallery lacks visual discovery cues');
+  assert(await page.$eval('.tile',xs=>xs.every(x=>getComputedStyle(x).animationName==='none')),
+    'Gallery cards themselves must stay still');
+  const galleryCueNames=await page.evaluate(()=>[
+    getComputedStyle(document.querySelector('.tile-a .thumb-holds')).animationName,
+    getComputedStyle(document.querySelector('.tile-b svg>circle')).animationName,
+    getComputedStyle(document.querySelector('.tile-c .thumb-axis')).animationName,
+    getComputedStyle(document.querySelector('.tile-d .thumb-ink')).animationName
+  ]);
+  assert.deepEqual(galleryCueNames,['gallery-hold-breath','gallery-date-pulse','gallery-axis-beacon','gallery-hook-glint'],
+    'Each gallery illustration needs its own nonverbal discovery cue');
   assert.equal(await page.$eval('.gallery',e=>getComputedStyle(e).position),'relative');
   await wordless();
   await shot('index-mobile.png');
