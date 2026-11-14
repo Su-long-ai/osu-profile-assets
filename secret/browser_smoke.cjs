@@ -286,8 +286,8 @@ const path=require('node:path');
   assert(!(await page.$eval('#assembly-home',e=>e.hidden)),'Completed butterfly must expose its return link');
   await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.assembly-core-mark')).opacity)<.01 &&
     Number(getComputedStyle(document.querySelector('.assembly-spine')).opacity)>.99,{timeout:1800});
-  assert.equal(await page.$eval('.assembly-core-mark',e=>getComputedStyle(e).opacity),'0','Four-root core must disappear after completion');
-  assert.notEqual(await page.$eval('.assembly-spine',e=>getComputedStyle(e).opacity),'0','Butterfly body must appear only after completion');
+  assert((await page.$eval('.assembly-core-mark',e=>Number(getComputedStyle(e).opacity)))<.01,'Four-root core must disappear after completion');
+  assert((await page.$eval('.assembly-spine',e=>Number(getComputedStyle(e).opacity)))>.99,'Butterfly body must appear only after completion');
   assert.equal(await page.$eval('#assembly-home',e=>e.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Completed butterfly must return to the source profile');
   await page.focus('#assembly-home');
   const homeFocus=await page.evaluate(()=>({
