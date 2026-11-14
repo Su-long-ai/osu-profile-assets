@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=39';
+ const expectedCSS='silent.css?v=40';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -186,7 +186,7 @@ const path=require('node:path');
   const paperBounds=await page.$('#paper').then(el=>el.boundingBox());
   await page.mouse.click(paperBounds.x+paperBounds.width*.15,paperBounds.y+paperBounds.height*.22);
   assert(await page.$eval('#correction',e=>e.hasAttribute('hidden')),'Clicking blank paper must not discover hidden ink');
-  assert.equal(await page.$$eval('#ink-target',e=>e.length),1,'Missing real physical ink correction target');
+  assert.equal(await page.$$eval('#ink-target',e=>e.length),1,'Missing real physical j-hook correction target');
   const inkArea=await page.$('#scribble').then(el=>el.boundingBox());
   await page.mouse.move(inkArea.x+inkArea.width/2,inkArea.y+inkArea.height/2);
   await page.mouse.down();
@@ -197,12 +197,15 @@ const path=require('node:path');
   await page.mouse.down();
   await page.mouse.move(inkArea.x+inkArea.width/2+34,inkArea.y+inkArea.height/2+20,{steps:5});
   await page.mouse.up();
-  assert(await page.$eval('#correction',e=>e.hasAttribute('hidden')),'Dragging down but far sideways cannot join ink');
+  assert(await page.$eval('#correction',e=>e.hasAttribute('hidden')),'Dragging away from the stem cannot join ink');
   await page.tap('#scribble');
   assert(await page.$eval('#correction',e=>e.hasAttribute('hidden')),
     'A single tap must pick the ink, never bypass the physical correction');
   assert(await page.$eval('#ink-socket',e=>!e.hasAttribute('hidden')),
-    'Picking the loose ink should reveal its target control');
+    'Picking the loose hook should reveal its stem target');
+  assert(!(await page.$eval('#paper',e=>e.classList.contains('corrected'))),
+    'The revealing touch must not click through and solve the hook');
+  await page.waitForTimeout(360);
   await page.tap('#ink-socket');
   assert(!(await page.$eval('#correction',e=>e.hasAttribute('hidden'))));
   assert(await page.$eval('#paper',e=>e.classList.contains('corrected')));
