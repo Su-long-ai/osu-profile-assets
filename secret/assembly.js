@@ -58,7 +58,7 @@
       slot.classList.toggle('selected', selected === id && id !== null);
       slot.setAttribute('aria-label', id ?
         '已放入' + fragments.parts.find(part => part.id === id).name + '，再次点按可拿起' :
-        ['蝴蝶左上空位','蝴蝶右上空位','蝴蝶左下空位','蝴蝶右下空位'][index]);
+        ['左上接合位置','右上接合位置','左下接合位置','右下接合位置'][index]);
       slot.disabled = completed;
       slot.draggable = Boolean(id) && !completed;
     });

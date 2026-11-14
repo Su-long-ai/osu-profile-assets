@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=40';
+ const expectedCSS='silent.css?v=41';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -284,6 +284,8 @@ const path=require('node:path');
     'Completed butterfly must visibly connect its four wings');
   assert(!(await page.$eval('#assembly-endmark',e=>e.hidden)),'Joined wing closure not shown');
   assert(!(await page.$eval('#assembly-home',e=>e.hidden)),'Completed butterfly must expose its return link');
+  assert.equal(await page.$eval('.assembly-core-mark',e=>getComputedStyle(e).opacity),'0','Four-root core must disappear after completion');
+  assert.notEqual(await page.$eval('.assembly-spine',e=>getComputedStyle(e).opacity),'0','Butterfly body must appear only after completion');
   assert.equal(await page.$eval('#assembly-home',e=>e.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Completed butterfly must return to the source profile');
   await page.focus('#assembly-home');
   const homeFocus=await page.evaluate(()=>({
