@@ -229,7 +229,7 @@ const path=require('node:path');
   assert.equal(await page.$eval('#completion-seal .seal-ready-mark',e=>getComputedStyle(e).display),'inline','Ready state must use the neutral four-root mark');
   assert(await page.$eval('#completion-seal',e=>e.getAttribute('href')==='./finale.html'),
     'Completed collection must enable an actual final puzzle link');
-  assert.equal(await page.$$eval('.seal-ready-mark circle',xs=>xs.length),4,'Ready mark must expose exactly four root nodes');
+  assert.equal(await page.$$eval('.seal-ready-mark .root-node',xs=>xs.length),4,'Ready mark must expose exactly four root nodes');
   assert(await page.$eval('.seal-body',e=>getComputedStyle(e).display==='none'),'Butterfly body must stay hidden before assembly');
   assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display==='none'),'Full butterfly must not spoil the finale');
   await wordless();
