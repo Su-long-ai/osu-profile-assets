@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=34';
+ const expectedCSS='silent.css?v=35';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -282,6 +282,15 @@ const path=require('node:path');
     'Completed butterfly must visibly connect its four wings');
   assert(!(await page.$eval('#assembly-endmark',e=>e.hidden)),'Joined wing closure not shown');
   assert(!(await page.$eval('#assembly-home',e=>e.hidden)),'Completed butterfly must return to the gallery');
+  await page.focus('#assembly-home');
+  const homeFocus=await page.evaluate(()=>({
+    outline:getComputedStyle(document.querySelector('#assembly-home')).outlineStyle,
+    wing:getComputedStyle(document.querySelector('.assembly-filled')).filter,
+    spine:getComputedStyle(document.querySelector('.assembly-spine')).filter
+  }));
+  assert.equal(homeFocus.outline,'none','Completed butterfly focus must not draw a UI rectangle');
+  assert.notEqual(homeFocus.wing,'none','Keyboard focus must remain visible on the butterfly itself');
+  assert.notEqual(homeFocus.spine,'none','Keyboard focus should illuminate the butterfly body');
   assert(await page.$eval('#assembly-tray',e=>e.hidden),'Collected pieces should disappear after assembly');
   assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v4:joined')==='1'),'Assembly not remembered');
   await page.tap('#assembly-endmark');
