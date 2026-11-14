@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=41';
+ const expectedCSS='silent.css?v=42';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -224,7 +224,9 @@ const path=require('node:path');
   await shot('stats-mobile.png');
 
   await open();
-  assert.equal(await page.$$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
+  assert.equal(await page.$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
+  assert(await page.$eval('.tile.discovered',xs=>xs.every(x=>getComputedStyle(x,'::after').content==='none')),
+    'Solved state must live in each artwork, not a generic completion badge');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
   assert.equal(await page.$eval('#completion-seal .seal-ready-mark',e=>getComputedStyle(e).display),'inline','Ready state must use the neutral four-root mark');
   assert(await page.$eval('#completion-seal',e=>e.getAttribute('href')==='./finale.html'),
