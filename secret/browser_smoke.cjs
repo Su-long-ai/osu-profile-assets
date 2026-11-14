@@ -93,13 +93,13 @@ const path=require('node:path');
     if(i===1){
       await page.reload({waitUntil:'load'});
       assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),2,'Partial rhythm should survive refresh');
-      assert.equal(await page.$eval('.hold-note.accepted',xs=>xs.length),0,'Partial sequence must survive without revealing correct lanes');
+      assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.length),0,'Partial sequence must survive without revealing correct lanes');
     }
   }
   assert(!(await page.$eval('#afterglow',e=>e.hasAttribute('hidden'))),'correct keys not resolved');
   assert(await discovered('keys'));
   assert(await page.$eval('#key-progress',e=>e.hasAttribute('hidden')),'Completed progress should be replaced by final mark');
-  assert.equal(await page.$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).sort().join(',')),'D,F,J,K','Only the recovered four-note phrase should illuminate after completion');
+  assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).sort().join(',')),'D,F,J,K','Only the recovered four-note phrase should illuminate after completion');
   await open();
   assert(await page.$eval('#completion-seal',el=>!el.hidden),'First found wing should begin the central composition');
   assert.equal(await page.$$eval('.seal-shards > g.found',e=>e.length),1,'Center must show only discovered wing');
