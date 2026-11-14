@@ -18,7 +18,7 @@ const path=require('node:path');
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=28';
+ const expectedCSS='silent.css?v=29';
  let firstPage=true;
  async function open(name=''){
   let res,css='';
@@ -247,6 +247,7 @@ const path=require('node:path');
     'Only a small physical wing root should hint at each position');
   assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),0);
   assert(await page.$eval('#assembly-endmark',e=>e.hidden),'An unfinished butterfly must remain open');
+  assert(await page.$eval('#assembly-home',e=>e.hidden),'Unfinished assembly cannot act as a return link');
   await page.tap('.assembly-piece[data-piece="keys"]');
   assert(await page.$eval('.assembly-piece[data-piece="keys"]',e=>e.getAttribute('aria-pressed')==='true'));
   await page.tap('.assembly-piece[data-piece="keys"]');
@@ -273,6 +274,7 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),4,
     'Completed butterfly must visibly connect its four wings');
   assert(!(await page.$eval('#assembly-endmark',e=>e.hidden)),'Joined wing closure not shown');
+  assert(!(await page.$eval('#assembly-home',e=>e.hidden)),'Completed butterfly must return to the gallery');
   assert(await page.$eval('#assembly-tray',e=>e.hidden),'Collected pieces should disappear after assembly');
   assert(await page.evaluate(()=>localStorage.getItem('nb036-misc-v4:joined')==='1'),'Assembly not remembered');
   await page.tap('#assembly-endmark');

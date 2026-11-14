@@ -17,6 +17,7 @@
   const board = document.querySelector('#assembly-board');
   const tray = document.querySelector('#assembly-tray');
   const endmark = document.querySelector('#assembly-endmark');
+  const home = document.querySelector('#assembly-home');
   const status = document.querySelector('#assembly-status');
   const slots = [...document.querySelectorAll('.assembly-slot')];
   const pieces = [...document.querySelectorAll('.assembly-piece')];
@@ -74,6 +75,7 @@
     board.classList.toggle('piece-selected', selected !== null && !completed);
     tray.hidden = completed;
     endmark.hidden = !completed;
+    home.hidden = !completed;
   }
   function remember() {
     localStorage.setItem(boardKey, JSON.stringify(placements));
@@ -115,7 +117,7 @@
     localStorage.setItem(finalKey, '1');
     localStorage.removeItem(replayKey);
     show();
-    status.textContent = '四片碎翼拼合，夜蝶完整显现';
+    status.textContent = '四片碎翼拼合，夜蝶完整显现。点按夜蝶返回图集，或点按下方环形标记重新拼合';
     // Reassembling the same butterfly never counts as a new solver.
     if (firstCompletion) {
       localStorage.setItem(reportKey,'1');
@@ -191,11 +193,14 @@
   let touchControls = [];
   document.addEventListener('click', event => {
     if (event.detail === 0 || performance.now() - touchHandledAt > 700) return;
-    if (!touchControls.some(control => control.contains(event.target))) return;
+    if (!touchControls.some(control => control.contains(event.target)) && !home.contains(event.target)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
   }, true);
   document.addEventListener('pointerdown', event => {
+    // A fresh press on the completed butterfly is intentional, unlike the
+    // synthetic click from the final placement that exposed the link.
+    if (home.contains(event.target)) { touchHandledAt = -Infinity; touchControls = []; return; }
     if (completed || event.pointerType !== 'touch') return;
     const element = event.target.closest('.assembly-piece,.assembly-slot');
     if (!element) return;
