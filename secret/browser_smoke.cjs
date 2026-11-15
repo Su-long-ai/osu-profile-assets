@@ -311,6 +311,13 @@ const path=require('node:path');
   assert(Number(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity))>.5,'Joined archive map must become visible');
   assert.equal(await page.$$eval('.archive-root',xs=>xs.length),4,'Joined archive must show four corresponding roots');
   await page.focus('.tile-a');
+  await page.waitForFunction(()=>{
+    const xs=[...document.querySelectorAll('.seal-wings [data-mini-part]')];
+    const own=xs.find(e=>e.dataset.miniPart==='keys');
+    const other=xs.filter(e=>e.dataset.miniPart!=='keys');
+    return own && Number(getComputedStyle(own).opacity)>.9 &&
+      other.length===3 && other.every(e=>Number(getComputedStyle(e).opacity)<.3);
+  },{timeout:1400});
   const wingFocus=await page.evaluate(()=>[...document.querySelectorAll('.seal-wings [data-mini-part]')].map(e=>[e.dataset.miniPart,Number(getComputedStyle(e).opacity),getComputedStyle(e).filter]));
   assert(wingFocus.find(x=>x[0]==='keys')[1]>.9,'Focused source must keep its own wing visible');
   assert(wingFocus.filter(x=>x[0]!=='keys').every(x=>x[1]<.3),'Focused source must dim the other three wings');
