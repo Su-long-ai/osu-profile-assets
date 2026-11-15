@@ -89,20 +89,27 @@ const path=require('node:path');
   }));
   console.log('SVG_CAP_DIAGNOSTIC',JSON.stringify(capInspect));
   assert.equal(await page.$$eval('.key-cap',xs=>xs.length),7,'Invisible lane buttons remain: '+JSON.stringify(capInspect.caps));
-  assert.equal(await page.$$eval('#key-progress circle',xs=>xs.length),4,'No four-beat input feedback');
+  assert.equal(await page.$$eval('#key-progress circle',xs=>xs.length),4,'Four-beat state machine lost its compatibility markers');
+  assert.equal(await page.$$eval('link[href*="diegetic-feedback.css?v=1"]',xs=>xs.length),1,'Diegetic feedback stylesheet missing in rhythm room');
+  const keyCounter=await page.$eval('#key-progress',e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return {o:Number(s.opacity),w:r.width,h:r.height,p:s.pointerEvents}});
+  assert(keyCounter.o===0&&keyCounter.w<=1.1&&keyCounter.h<=1.1&&keyCounter.p==='none','Detached rhythm counter became visible again');
+  assert.equal(await page.$$eval('.phrase-echo',xs=>xs.length),4,'In-grid rhythm history needs four scene marks');
   await wordless();
   await shot('keys-mobile.png');
   for(const [i,k] of ['S','SPACE','L','S'].entries()){
    await page.tap('[data-lane="'+k+'"] rect');
    if(i<3){
     assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),i+1,'Input count should advance without judging correctness');
+    assert.equal(await page.$$eval('.phrase-echo:not([hidden])',xs=>xs.length),i+1,'Input history must live inside the piano roll');
     assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.length),0,'Partial input must not reveal correct lanes');
     assert(!(await page.$eval('#key-progress',el=>el.classList.contains('wrong-order'))),'Partial input leaked correctness');
    }
   }
   assert(await page.$eval('#afterglow',e=>e.hasAttribute('hidden')),'wrong full sequence revealed hidden mark');
   assert(await page.$eval('#key-progress',el=>el.classList.contains('wrong-order')),'Wrong full sequence lacks feedback');
+  assert(await page.$eval('#beat-grid',el=>el.classList.contains('phrase-rejected')),'Wrong phrase feedback escaped the score scene');
   await page.waitForFunction(()=>document.querySelectorAll('#key-progress circle.on').length===0&&!document.querySelector('#key-progress').classList.contains('wrong-order'));
+  assert.equal(await page.$$eval('.phrase-echo:not([hidden])',xs=>xs.length),0,'Rejected phrase left stale score marks');
   assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.length),0,'Wrong sequence left correctness marks');
   assert(!(await page.$eval('#source-lens',e=>e.hidden)),'A full failed phrase should reveal the source aperture');
   assert(!(await page.$eval('#source-proof',e=>e.open)),'Source aperture opened without intent');
@@ -121,6 +128,8 @@ const path=require('node:path');
     if(i===1){
       await page.reload({waitUntil:'load'});
       assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),2,'Partial rhythm should survive refresh');
+      assert.equal(await page.$$eval('.phrase-echo:not([hidden])',xs=>xs.length),2,'Visible score history must survive refresh with the partial rhythm');
+      assert.deepEqual(await page.$$eval('.phrase-echo:not([hidden])',xs=>xs.map(x=>Number(x.getAttribute('x')))),[208,254],'Score history no longer maps J,K to their real lanes');
       assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.length),0,'Partial sequence must survive without revealing correct lanes');
     }
   }
@@ -160,6 +169,9 @@ const path=require('node:path');
 
   await open('orbit.html');
   assert.equal(await page.$eval('.source-reference',a=>a.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Mirror room must point back to the profile artwork');
+  assert.equal(await page.$$eval('link[href*="diegetic-feedback.css?v=1"]',xs=>xs.length),1,'Diegetic feedback stylesheet missing in mirror room');
+  const starCounter=await page.$eval('#star-progress',e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return {o:Number(s.opacity),w:r.width,h:r.height,p:s.pointerEvents}});
+  assert(starCounter.o===0&&starCounter.w<=1.1&&starCounter.h<=1.1&&starCounter.p==='none','Detached star counter became visible again');
   await wordless();
   assert.equal(await page.$$eval('[data-star][role="button"]',e=>e.length),7);
   const axisStarGap=await page.evaluate(()=>{
@@ -192,7 +204,9 @@ const path=require('node:path');
   assert.equal(await page.$$eval('[data-star].chosen',e=>e.length),4,
     'A fifth star must be rejected, not silently stored with four progress pips');
   assert(await page.$eval('#star-progress',e=>e.classList.contains('limit')),
-    'Four-selected feedback missing when user tries a fifth star');
+    'Four-selected state marker missing when user tries a fifth star');
+  assert(await page.$eval('.star-wrap',e=>e.classList.contains('selection-full')),
+    'Four-selected feedback must pulse the chosen stars inside the scene');
   await page.reload({waitUntil:'load'});
   assert.equal(await page.$$eval('[data-star].chosen',e=>e.length),4,'In-progress selections were lost');
   await page.tap('[data-star="v2"] .star-hit');
