@@ -55,10 +55,10 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
   assert(await page.$eval('#completion-seal',el=>el.hidden && !el.hasAttribute('href')),
     'Zero-progress center must not expose finale link');
-  assert.equal(await page.$eval('.archive-link',xs=>xs.length),4,'Post-completion archive needs four source links');
+  assert.equal(await page.$$eval('.archive-link',xs=>xs.length),4,'Post-completion archive needs four source links');
   assert.equal(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity),'0','Archive map must stay hidden before completion');
   assert.equal(await page.$eval('.archive-map',e=>getComputedStyle(e).pointerEvents),'none','Archive map must never intercept play');
-  assert(await page.$eval('.tile',xs=>xs.every(x=>getComputedStyle(x).animationName==='none')),
+  assert(await page.$$eval('.tile',xs=>xs.every(x=>getComputedStyle(x).animationName==='none')),
     'Gallery cards themselves must stay still');
   const galleryCueNames=await page.evaluate(()=>[
     getComputedStyle(document.querySelector('.tile-a .thumb-holds')).animationName,
@@ -229,18 +229,18 @@ const path=require('node:path');
 
   await open('stats.html');
   await wordless();
-  assert.equal(await page.$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
-  assert.equal(await page.$eval('.stats-spoke',xs=>xs.length),4,'Stats map needs four parallel source spokes');
-  assert.equal(await page.$eval('.stats-tip',xs=>xs.length),4,'Stats map needs four source tips');
-  assert.equal(await page.$eval('.stats-assembly-ring',xs=>xs.length),1,'Stats map needs one assembly hub');
+  assert.equal(await page.$$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
+  assert.equal(await page.$$eval('.stats-spoke',xs=>xs.length),4,'Stats map needs four parallel source spokes');
+  assert.equal(await page.$$eval('.stats-tip',xs=>xs.length),4,'Stats map needs four source tips');
+  assert.equal(await page.$$eval('.stats-assembly-ring',xs=>xs.length),1,'Stats map needs one assembly hub');
   assert.equal(await page.$$eval('.stats-history output',e=>e.length),11);
   await page.waitForFunction(()=>[...document.querySelectorAll('.stats-scene > .stats-row output')].every(e=>e.textContent==='—'),{timeout:12000});
   assert(await page.$$eval('.stats-scene > .stats-row output',xs=>xs.every(x=>x.getAttribute('aria-label').includes('不代表零次'))),'Failed reads must not imply zero or distinct people');
   await shot('stats-mobile.png');
 
   await open();
-  assert.equal(await page.$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
-  assert(await page.$eval('.tile.discovered',xs=>xs.every(x=>getComputedStyle(x,'::after').content==='none')),
+  assert.equal(await page.$$eval('.tile.discovered',e=>e.length),4,'All four details should be marked after solving');
+  assert(await page.$$eval('.tile.discovered',xs=>xs.every(x=>getComputedStyle(x,'::after').content==='none')),
     'Solved state must live in each artwork, not a generic completion badge');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
   assert.equal(await page.$eval('#completion-seal .seal-ready-mark',e=>getComputedStyle(e).display),'inline','Ready state must use the neutral four-root mark');
@@ -309,7 +309,7 @@ const path=require('node:path');
   await page.goto(base+'?v='+cacheBuster+'-joined',{waitUntil:'load',timeout:27000});
   assert(await page.$eval('.gallery',e=>e.classList.contains('joined')),'Completed gallery must enter joined archive state');
   assert(Number(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity))>.5,'Joined archive map must become visible');
-  assert.equal(await page.$eval('.archive-root',xs=>xs.length),4,'Joined archive must show four corresponding roots');
+  assert.equal(await page.$$eval('.archive-root',xs=>xs.length),4,'Joined archive must show four corresponding roots');
   await page.focus('.tile-a');
   const wingFocus=await page.evaluate(()=>[...document.querySelectorAll('.seal-wings [data-mini-part]')].map(e=>[e.dataset.miniPart,Number(getComputedStyle(e).opacity),getComputedStyle(e).filter]));
   assert(wingFocus.find(x=>x[0]==='keys')[1]>.9,'Focused source must keep its own wing visible');
