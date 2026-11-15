@@ -73,11 +73,14 @@
         '<g stroke="' + part.color + '" fill="none" stroke-width="1.5" opacity=".58">' + part.veins + '</g></g>';
     }).join('');
     return '<svg viewBox="-18 -12 316 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<g class="seal-ready-mark" fill="none" stroke-width="1.5">' +
-      '<circle class="root-node" cx="102" cy="86" r="6" stroke="#9cc4c9"/><circle class="root-node" cx="178" cy="86" r="6" stroke="#b7adcb"/>' +
-      '<circle class="root-node" cx="102" cy="166" r="6" stroke="#a6c7ce"/><circle class="root-node" cx="178" cy="166" r="6" stroke="#bba8c9"/>' +
-      '<path d="M108 86H172M102 92V160M178 92V160M108 166H172" stroke="#8ca9af" opacity=".38"/>' +
-      '<g class="root-cores" fill="#cde1e0" stroke="none" opacity=".5"><circle cx="102" cy="86" r="1.5"/><circle cx="178" cy="86" r="1.5"/><circle cx="102" cy="166" r="1.5"/><circle cx="178" cy="166" r="1.5"/></g></g>' +
+      '<g class="seal-ready-mark" fill="none" stroke-width="1.35" stroke-linecap="round">' +
+      '<circle class="root-node" cx="126" cy="101" r="4" stroke="#9cc4c9"/><circle class="root-node" cx="154" cy="101" r="4" stroke="#b7adcb"/>' +
+      '<circle class="root-node" cx="126" cy="129" r="4" stroke="#a6c7ce"/><circle class="root-node" cx="154" cy="129" r="4" stroke="#bba8c9"/>' +
+      '<path class="ready-root-seam" d="M126 101C116 96 106 87 97 86" stroke="#9cc4c9" opacity=".54"/>' +
+      '<path class="ready-root-seam" d="M154 101C164 96 174 87 183 86" stroke="#b7adcb" opacity=".54"/>' +
+      '<path class="ready-root-seam" d="M126 129C116 134 108 143 100 145" stroke="#a6c7ce" opacity=".54"/>' +
+      '<path class="ready-root-seam" d="M154 129C164 134 172 143 180 145" stroke="#bba8c9" opacity=".54"/>' +
+      '<g class="root-cores" fill="#cde1e0" stroke="none" opacity=".46"><circle cx="126" cy="101" r="1.3"/><circle cx="154" cy="101" r="1.3"/><circle cx="126" cy="129" r="1.3"/><circle cx="154" cy="129" r="1.3"/></g></g>' +
       '<g class="seal-wings">' + full + '</g>' +
       '<path class="seal-body" d="M140 98V155M140 105Q131 86 122 80M140 105Q149 86 158 80" ' +
       'stroke="#8ca9af" stroke-width="1.7" fill="none" opacity=".64"/></svg>';
