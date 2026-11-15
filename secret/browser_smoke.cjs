@@ -56,6 +56,12 @@ const path=require('node:path');
   assert(await page.$eval('#completion-seal',el=>el.hidden && !el.hasAttribute('href')),
     'Zero-progress center must not expose finale link');
   assert.equal(await page.$$eval('.archive-link',xs=>xs.length),4,'Post-completion archive needs four source links');
+  assert.equal(await page.$$eval('.source-afterimage',xs=>xs.length),4,'Hub needs four source-native afterimages');
+  assert.equal(await page.$$eval('link[href*="source-memory.css?v=1"]',xs=>xs.length),1,'Source-memory stylesheet missing');
+  assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)===0)),
+    'Source afterimages must stay invisible before assembly');
+  assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>getComputedStyle(x).pointerEvents==='none')),
+    'Source afterimages must never intercept the four existing trailheads');
   assert.equal(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity),'0','Archive map must stay hidden before completion');
   assert.equal(await page.$eval('.archive-map',e=>getComputedStyle(e).pointerEvents),'none','Archive map must never intercept play');
   assert(await page.$$eval('.tile',xs=>xs.every(x=>getComputedStyle(x).animationName==='none')),
@@ -320,6 +326,17 @@ const path=require('node:path');
   assert(await page.$eval('.gallery',e=>e.classList.contains('joined')),'Completed gallery must enter joined archive state');
   assert(Number(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity))>.5,'Joined archive map must become visible');
   assert.equal(await page.$$eval('.archive-root',xs=>xs.length),4,'Joined archive must show four corresponding roots');
+  await new Promise(resolve=>setTimeout(resolve,520));
+  const memories=await page.evaluate(()=>[...document.querySelectorAll('.source-afterimage')].map(e=>({
+    opacity:Number(getComputedStyle(e).opacity),
+    pointer:getComputedStyle(e).pointerEvents,
+    background:getComputedStyle(e).backgroundImage
+  })));
+  assert.equal(memories.length,4,'Joined hub lost a source afterimage');
+  assert(memories.every(x=>x.opacity>=.12),'Joined source memories never became visible');
+  assert(memories.every(x=>x.pointer==='none'),'Joined source memories intercepted interaction');
+  assert(memories.every(x=>/source-memory-(keys|dates|mirror|margin)\.png/.test(x.background)),
+    'Joined source memory does not come from the profile-native crops');
   await page.focus('.tile-a');
   await page.waitForFunction(()=>{
     const xs=[...document.querySelectorAll('.seal-wings [data-mini-part]')];
