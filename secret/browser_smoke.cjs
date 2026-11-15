@@ -115,8 +115,15 @@ const path=require('node:path');
   assert(!(await page.$eval('#source-proof',e=>e.open)),'Source aperture opened without intent');
   await page.tap('#source-lens');
   await page.waitForFunction(()=>document.querySelector('#source-proof')?.open===true);
-  assert.equal(await page.$$eval('.source-proof-aperture',xs=>xs.length),1,'Source crop lost its optical aperture');
-  assert.equal(await page.$$eval('#source-proof-close',xs=>xs.length),0,'Card-style close control regressed into the source aperture');
+  assert.equal(await page.$eval('.source-proof-aperture',()=>1),1,'Source crop lost its optical aperture');
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('#source-proof-close').length),0,'Card-style close control regressed into the source aperture');
+  assert.equal(await page.$eval('picture source[srcset*="v39-source-phrase.png"]',()=>1),1,
+    'Reduced-motion source proof is not derived from the current v39 profile hero');
+  assert.equal(await page.$eval('#source-proof img[src*="v39-source-phrase.gif"]',()=>1),1,
+    'Animated source proof is not derived from the current v39 profile hero');
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('[src*="v36-source-phrase"]').length),0,
+    'Stale v36 source proof leaked back into the live rhythm room');
+  await page.waitForFunction(()=>{const i=document.querySelector('#source-proof img');return i&&i.naturalWidth===344&&i.naturalHeight===246});
   await page.keyboard.press('j');
   assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),0,'Source aperture leaked keyboard input into the rhythm room');
   await page.keyboard.press('Escape');
