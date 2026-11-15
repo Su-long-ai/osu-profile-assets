@@ -98,6 +98,16 @@ const path=require('node:path');
   assert(await page.$eval('#key-progress',el=>el.classList.contains('wrong-order')),'Wrong full sequence lacks feedback');
   await page.waitForFunction(()=>document.querySelectorAll('#key-progress circle.on').length===0&&!document.querySelector('#key-progress').classList.contains('wrong-order'));
   assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.length),0,'Wrong sequence left correctness marks');
+  assert(!(await page.$eval('#source-lens',e=>e.hidden)),'A full failed phrase should reveal the source aperture');
+  assert(!(await page.$eval('#source-proof',e=>e.open)),'Source aperture opened without intent');
+  await page.tap('#source-lens');
+  await page.waitForFunction(()=>document.querySelector('#source-proof')?.open===true);
+  assert.equal(await page.$$eval('.source-proof-aperture',xs=>xs.length),1,'Source crop lost its optical aperture');
+  assert.equal(await page.$$eval('#source-proof-close',xs=>xs.length),0,'Card-style close control regressed into the source aperture');
+  await page.keyboard.press('j');
+  assert.equal(await page.$$eval('#key-progress circle.on',xs=>xs.length),0,'Source aperture leaked keyboard input into the rhythm room');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>document.querySelector('#source-proof')?.open===false);
   for(const [i,k] of ['J','K','D','F'].entries()){
     if(i===0)await page.tap('.hold-note[data-hold="'+k+'"]');
     else await page.keyboard.press(k.toLowerCase());
