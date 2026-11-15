@@ -304,8 +304,13 @@ const path=require('node:path');
   await page.waitForFunction(()=>location.pathname.endsWith('/finale.html'));
   await page.waitForFunction(()=>document.querySelectorAll('.assembly-ghost .fragment-art').length===4,{timeout:10000});
   assert.equal(await page.$$eval('.assembly-slot',e=>e.length),4);
-  assert.equal(await page.$$eval('.assembly-piece',e=>e.length),4);
-  assert.equal(await page.$$eval('.assembly-ghost .fragment-art',e=>e.length),4);
+  assert.equal(await page.$eval('.assembly-piece',e=>e.length),4);
+  assert.equal(await page.$eval('link[href*="assembly-loose.css?v=1"]',e=>e.length),1,'Loose-fragment assembly stylesheet missing');
+  assert(await page.$eval('.assembly-piece',xs=>xs.every(x=>getComputedStyle(x).borderBottomWidth==='0px')),
+    'Fragment tray rails returned');
+  assert(await page.$eval('.assembly-piece',xs=>xs.every(x=>getComputedStyle(x,'::after').display==='none')),
+    'Fragment tray dots returned');
+  assert.equal(await page.$eval('.assembly-ghost .fragment-art',e=>e.length),4);
   assert.equal(await page.$$eval('.assembly-ghost clipPath rect',e=>e.filter(x=>Number(x.getAttribute('width'))<=20).length),4,
     'Only a small physical wing root should hint at each position');
   assert.equal(await page.$$eval('.assembly-root-join',e=>e.length),0);
