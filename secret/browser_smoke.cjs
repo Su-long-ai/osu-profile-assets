@@ -432,17 +432,12 @@ const path=require('node:path');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
-  await page.waitForSelector('#e-side',{timeout:10000});
-  await page.tap('details summary');
-  await page.tap('#redact');
-  for(const k of ['d','f','j','k'])await page.tap('[data-lane="'+k+'"]');
-  await page.tap('[data-year="2020"]');
-  await page.tap('[data-year="2025"]');
-  await page.tap('#constellation');
-  for(const k of ['0','3','6'])await page.tap('[data-digit="'+k+'"]');
-  assert(!(await page.$eval('#e-side',e=>e.hidden)),'Archived E-Side cannot be completed');
-  await page.reload({waitUntil:'load'});
-  assert(!(await page.$eval('#e-side',e=>e.hidden)),'Archived E-Side should survive reload');
+  await page.waitForFunction(()=>location.pathname.replace(/\/$/,'').endsWith('/secret')&&document.querySelector('.gallery'),{timeout:10000});
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('.tile').length),4,'Legacy tape bookmark did not return to the current four-trailhead hub');
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('#redact,[data-year],[data-digit],details').length),0,
+    'Retired tape controls leaked back into the current ARG');
+  assert.equal(await page.evaluate(()=>document.body.textContent.includes('REVEAL THE UNLISTED TRACK')),false,
+    'Retired tape prose leaked back into the current ARG');
 
   await page.setViewport({width:1280,height:900,deviceScaleFactor:1,isMobile:false,hasTouch:false});
   await open();
