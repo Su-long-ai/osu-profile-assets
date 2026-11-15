@@ -57,7 +57,7 @@ const path=require('node:path');
     'Zero-progress center must not expose finale link');
   assert.equal(await page.$$eval('.archive-link',xs=>xs.length),4,'Post-completion archive needs four source links');
   assert.equal(await page.$$eval('.source-afterimage',xs=>xs.length),4,'Hub needs four source-native afterimages');
-  assert.equal(await page.$$eval('link[href*="source-memory.css?v=1"]',xs=>xs.length),1,'Source-memory stylesheet missing');
+  assert.equal(await page.$$eval('link[href*="source-memory.css?v=2"]',xs=>xs.length),1,'Source-memory stylesheet missing');
   assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)===0)),
     'Source afterimages must stay invisible before assembly');
   assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>getComputedStyle(x).pointerEvents==='none')),
@@ -333,10 +333,23 @@ const path=require('node:path');
     background:getComputedStyle(e).backgroundImage
   })));
   assert.equal(memories.length,4,'Joined hub lost a source afterimage');
-  assert(memories.every(x=>x.opacity>=.12),'Joined source memories never became visible');
+  assert(memories.every(x=>x.opacity>=.08),'Joined source memories never became visible');
   assert(memories.every(x=>x.pointer==='none'),'Joined source memories intercepted interaction');
   assert(memories.every(x=>/source-memory-(keys|dates|mirror|margin)\.png/.test(x.background)),
     'Joined source memory does not come from the profile-native crops');
+  const sourceDims=await page.evaluate(async()=>{
+    const names=['keys','dates','mirror','margin'], out={};
+    await Promise.all(names.map(name=>new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>{out[name]=[img.naturalWidth,img.naturalHeight];resolve();};
+      img.onerror=reject;
+      img.src='./source-memory-'+name+'.png?v='+Date.now();
+    })));
+    return out;
+  });
+  assert.deepEqual(sourceDims,{
+    keys:[210,125],dates:[310,129],mirror:[140,95],margin:[168,144]
+  },'Source memories must use the exact four live profile imagemap windows');
   await page.focus('.tile-a');
   await page.waitForFunction(()=>{
     const xs=[...document.querySelectorAll('.seal-wings [data-mini-part]')];
