@@ -183,7 +183,7 @@ const path=require('node:path');
   assert(await page.$eval('.dates',e=>e.classList.contains('has-both')),'Date line was not completed');
   assert.equal(await page.$$eval('.date-row:disabled',xs=>xs.length),7,'Solved timeline rows must become archival');
   assert.equal(await page.$eval('.date-row',e=>getComputedStyle(e).cursor),'default','Solved timeline row still advertises pointer input');
-  assert.equal(await page.$eval('.date-row:disabled[tabindex="-1"]',xs=>xs.length),7,
+  assert.equal(await page.$$eval('.date-row:disabled[tabindex="-1"]',xs=>xs.length),7,
     'Solved timeline rows must explicitly leave the focus order');
   await shot('dates-mobile.png');
 
@@ -237,11 +237,11 @@ const path=require('node:path');
   assert(await page.$eval('#axis-beacon',e=>e.hasAttribute('hidden')),'Mirror cue did not yield to the revealed guides');
   await shot('wing-mobile.png');
   assert(await page.$eval('#axis-hit',e=>e.disabled),'Solved mirror axis must become archival');
-  assert.equal(await page.$eval('[data-star][role="img"][tabindex="-1"]',xs=>xs.length),7,
+  assert.equal(await page.$$eval('[data-star][role="img"][tabindex="-1"]',xs=>xs.length),7,
     'Solved mirror stars must become static archive graphics');
-  assert.equal(await page.$eval('[data-star][role="button"]',xs=>xs.length),0,
+  assert.equal(await page.$$eval('[data-star][role="button"]',xs=>xs.length),0,
     'Solved mirror must not leave seven stale puzzle buttons');
-  assert.equal(await page.$eval('[data-star][aria-pressed]',xs=>xs.length),0,
+  assert.equal(await page.$$eval('[data-star][aria-pressed]',xs=>xs.length),0,
     'Static mirror archive must not advertise pressed button state');
   assert.equal(await page.$eval('#axis-hit',e=>e.tabIndex),-1,'Solved mirror axis stayed in the focus order');
   assert.equal(await page.$eval('[data-star]',e=>getComputedStyle(e).cursor),'default','Solved mirror star still advertises pointer input');
