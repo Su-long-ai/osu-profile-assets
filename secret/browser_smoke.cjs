@@ -614,7 +614,7 @@ assert.equal(invalidSingleEval.length,0,
       'Historical registration mark introduced a new UI control: '+room);
   }
 
-  await page.goto(base+'orbit.html#registered?v='+cacheBuster+'-arrival',{waitUntil:'load',timeout:27000});
+  await page.goto(base+'orbit.html?v='+cacheBuster+'-arrival#registered',{waitUntil:'load',timeout:27000});
   assert(await page.$eval('.fragment-stamp',e=>e.classList.contains('registration-arrival')),
     'Registered print route did not leave an arrival impression in its archive');
   assert.equal(await page.$eval('.fragment-stamp',e=>e.getAttribute('href')),'./impression.html#mirror',
