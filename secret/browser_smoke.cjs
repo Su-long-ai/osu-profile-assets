@@ -59,6 +59,10 @@ assert.equal(invalidSingleEval.length,0,
  async function discovered(id){return page.evaluate(x=>window.NB.seen(x),id);}
  try{
   await open();
+  await page.evaluate(()=>{
+    for(const key of Object.keys(localStorage))if(key.startsWith('nb036-'))localStorage.removeItem(key);
+  });
+  await page.reload({waitUntil:'load'});
   assert.equal(await page.$$eval('.tile',xs=>xs.length),4);
   assert(await page.$eval('#completion-seal',el=>el.hidden && !el.hasAttribute('href')),
     'Zero-progress center must not expose finale link');
@@ -535,7 +539,7 @@ assert.equal(invalidSingleEval.length,0,
     'One source proof revealed the other wings');
   assert.equal(await page.$eval('[data-proof-hit="keys"]',e=>getComputedStyle(e).outlineStyle),'none',
     'Source-proof keyboard focus drew a UI rectangle');
-  await page.focus('.pin-route[data-pin-route="mirror"]');
+  await page.$eval('.pin-route[data-pin-route="mirror"]',e=>e.focus());
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'mirror',
     'Focused registration pin did not preview its archive source');
   assert.equal(await page.$eval('#plate',e=>e.dataset.routePreview),'mirror',
