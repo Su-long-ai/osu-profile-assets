@@ -501,7 +501,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),-1,'Solved print slider stayed in the focus order');
   assert.equal(await page.$$eval('[data-proof-hit][tabindex="0"][aria-disabled="false"]',xs=>xs.length),4,
     'Solved print must expose four source-proof regions');
-  await page.focus('[data-proof-hit="keys"]');
+  await page.$eval('[data-proof-hit="keys"]',e=>e.focus());
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Focused wing did not reveal its source');
   assert(Number(await page.$eval('[data-source-part="keys"]',e=>getComputedStyle(e).opacity))>.12,
     'Focused key wing source never appeared');
@@ -512,7 +512,7 @@ assert.equal(invalidSingleEval.length,0,
   await page.$eval('[data-proof-hit="keys"]',e=>e.click());
   await page.focus('#impression-edition');
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Pinned source proof did not survive focus movement');
-  await page.focus('[data-proof-hit="keys"]');
+  await page.$eval('[data-proof-hit="keys"]',e=>e.focus());
   await page.keyboard.press('Escape');
   assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Escape did not dismiss the source proof');
   await page.click('#reprint');
