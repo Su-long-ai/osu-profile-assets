@@ -17,7 +17,7 @@
   const grain=groups((p,i)=>'<defs><clipPath id="ink-clip-'+i+'"><path d="'+p.contour+'"/></clipPath></defs><g clip-path="url(#ink-clip-'+i+')" stroke="'+p.color+'" fill="none"><path d="'+p.contour+'" fill="'+p.color+'" fill-opacity=".055" stroke="none"/>'+Array.from({length:25},(_,n)=>'<path d="M-25 '+(n*7-65)+'L170 '+(n*7+38)+'" stroke-width=".45" opacity="'+(n%3===0?.26:.12)+'"/>').join('')+'</g>');
   const body='<path d="M200 185V231M200 193Q193 177 186 172M200 193Q207 177 214 172" stroke="#b4c8ce" stroke-width=".75" fill="none" stroke-linecap="round"/>';
   fixed.innerHTML='<g class="fixed-outline">'+outlines+'</g><g class="print-grain">'+grain+body+'</g>';
-  pins.innerHTML=pt.map(([x,y],i)=>'<g data-pin-part="'+parts[i].id+'" stroke="'+parts[i].color+'" fill="none"><circle cx="'+x+'" cy="'+y+'" r="5.8" stroke-width=".9"/><path d="M'+(x-10)+' '+y+'h3m14 0h3M'+x+' '+(y-10)+'v3m0 14v3" stroke-width=".65" opacity=".6"/></g>').join('');
+  pins.innerHTML=pt.map(([x,y],i)=>'<g data-pin-part="'+parts[i].id+'" stroke="'+parts[i].color+'" fill="none"><circle cx="'+x+'" cy="'+y+'" r="5.8" stroke-width=".9"/><path d="M'+(x-10)+' '+y+'h3m14 0h3M'+x+' '+(y-10)+'v3m0 14v3" stroke-width=".65" opacity=".6"/><circle class="transfer-core" cx="'+x+'" cy="'+y+'" r="2" fill="'+parts[i].color+'" stroke="none"/></g>').join('');
   turn.innerHTML='<g class="moving-veins">'+veins+'</g><g class="registration">'+pt.map(([x,y],i)=>'<circle cx="'+x+'" cy="'+y+'" r="3.1" fill="'+parts[i].color+'"/>').join('')+'<path d="M200 49A151 151 0 0 1 250 57" stroke="#9ebdc8" stroke-opacity=".65" fill="none" stroke-width="1.4" stroke-linecap="round"/></g>';
   const sourceSpec={
     keys:{href:'./source-memory-keys.png',x:0,y:2,w:142,h:111,fit:'xMidYMid slice'},
@@ -46,10 +46,16 @@
   // The downloaded proof is the same physical object: keep the registration
   // geometry, but strip DOM-only part labels so the file carries no textual answer.
   const exportPins='<g class="export-registration-pins" opacity=".62">'+
-    rawPins.replace(/ data-pin-part="[^"]+"/g,'')+'</g>';
+    rawPins.replace(/<circle class="transfer-core"[^>]*(?:><\/circle>|\/>)/g,'').replace(/ data-pin-part="[^"]+"/g,'')+'</g>';
   const paperInk={'#9cc4c9':'#386770','#a6c7ce':'#416773','#b7adcb':'#665577','#bba8c9':'#75556e','#beaace':'#846674','#a8cbd1':'#386770','#b4c8ce':'#59696a','#9ebdc8':'#53727a','#b7ccd2':'#586c70','#536b79':'#84918d','#121820':'#e6e2d7'};
   const recolor=(source,paper)=>paper?source.replace(/#[0-9a-f]{6}/gi,x=>paperInk[x.toLowerCase()]||x):source;
   let angle=67,solved=false,drag=null,url='',edition='night',pinnedProof=null;
+  const contactIds=()=>parts.filter(p=>localStorage.getItem('nb036-impression-v3:contact:'+p.id)==='1').map(p=>p.id);
+  function renderContacts(){
+    const ids=contactIds();
+    for(const p of parts)plate.classList.toggle('contact-'+p.id,ids.includes(p.id));
+    plate.classList.toggle('contact-complete',ids.length===parts.length);
+  }
   function showProof(id){
     if(solved&&id)plate.dataset.proof=id;
     else plate.removeAttribute('data-proof');
@@ -82,6 +88,7 @@
     fixed.innerHTML=recolor(rawFixed,paper);
     turn.innerHTML=recolor(rawTurn,paper);
     pins.innerHTML=recolor(rawPins,paper);
+    renderContacts();
     editionControl.setAttribute('aria-pressed',String(paper));
     download.download='036js-'+edition+'-impression.svg';
     if(remember)localStorage.setItem(editionKey,edition);
@@ -112,7 +119,7 @@
     plate.setAttribute('role','group');plate.tabIndex=-1;
     plate.removeAttribute('aria-valuemin');plate.removeAttribute('aria-valuemax');
     plate.setAttribute('aria-label','套印完成，四片翼可以回看其主页来源，四个套印标记可以打开对应归档');
-    enableProofs(true);enableRoutes(true);
+    enableProofs(true);enableRoutes(true);renderContacts();
     pinnedProof=routePart||pinnedProof;
     if(routePart)plate.dataset.route=routePart;
     showProof(pinnedProof);

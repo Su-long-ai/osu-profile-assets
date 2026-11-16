@@ -509,7 +509,7 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('link[href*="impression-source.css?v=1"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('link[href*="impression-source.css?v=2"]',xs=>xs.length),1,
     'Impression source-proof stylesheet missing');
   assert.equal(await page.$$eval('link[href*="registered-graph.css?v=2"]',xs=>xs.length),1,
     'Registered archive graph stylesheet missing from impression');
@@ -565,16 +565,16 @@ assert.equal(invalidSingleEval.length,0,
   assert(nightExport.includes('class="export-registration-pins"'),'Downloaded night print lost its four registration marks');
   assert.equal((nightExport.match(/r="5\.8"/g)||[]).length,4,'Downloaded night print needs four registration rings');
   assert(!nightExport.includes('data-pin-part='),'Downloaded print leaked DOM-only part labels');
-  assert(!nightExport.includes('<image')&&!nightExport.includes('source-memory'),
-    'Temporary source-proof raster leaked into the downloadable artifact');
+  assert(!nightExport.includes('<image')&&!nightExport.includes('source-memory')&&!nightExport.includes('transfer-core'),
+    'Temporary source/contact state leaked into the downloadable artifact');
   await page.click('#impression-edition');
   const paperExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
   assert(paperExport.includes('class="export-registration-pins"'),'Downloaded paper print lost its four registration marks');
   assert.equal((paperExport.match(/r="5\.8"/g)||[]).length,4,'Downloaded paper print needs four registration rings');
   assert(paperExport.includes('#386770')&&paperExport.includes('#665577')&&paperExport.includes('#416773')&&paperExport.includes('#75556e'),
     'Paper export registration pins were not recolored with the print');
-  assert(!paperExport.includes('<image')&&!paperExport.includes('source-memory'),
-    'Paper export leaked a temporary source-proof raster');
+  assert(!paperExport.includes('<image')&&!paperExport.includes('source-memory')&&!paperExport.includes('transfer-core'),
+    'Paper export leaked temporary source/contact state');
   await page.click('#reprint');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Reprint did not restore slider semantics');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Reprint did not restore slider focus');
@@ -601,6 +601,8 @@ assert.equal(invalidSingleEval.length,0,
       'Archive breadcrumb must keep the direct hub route: '+room);
     assert(!(await page.$eval('.fragment-stamp',e=>e.classList.contains('registration-arrival'))),
       'Ordinary archive revisit falsely played a registered arrival: '+room);
+    assert.equal(await page.evaluate(p=>localStorage.getItem('nb036-impression-v3:contact:'+p),part),null,
+      'Ordinary archive revisit falsely recorded print contact: '+room);
     const reg=await page.$eval('.fragment-hairline',e=>{
       const r=e.getBoundingClientRect(),s=getComputedStyle(e),b=getComputedStyle(e,'::before'),a=getComputedStyle(e,'::after');
       return {w:r.width,h:r.height,border:s.borderTopWidth,bw:b.width,bh:b.height,bs:b.boxShadow,aw:a.width,ah:a.height,as:a.boxShadow};
@@ -614,11 +616,40 @@ assert.equal(invalidSingleEval.length,0,
       'Historical registration mark introduced a new UI control: '+room);
   }
 
-  await page.goto(base+'orbit.html?v='+cacheBuster+'-arrival#registered',{waitUntil:'load',timeout:27000});
+  // Contact history is order-free and robust to same-document hash arrivals.
+  await open('signal.html');
+  await page.evaluate(()=>{location.hash='registered'});
+  await page.waitForFunction(()=>localStorage.getItem('nb036-impression-v3:contact:keys')==='1');
   assert(await page.$eval('.fragment-stamp',e=>e.classList.contains('registration-arrival')),
-    'Registered print route did not leave an arrival impression in its archive');
-  assert.equal(await page.$eval('.fragment-stamp',e=>e.getAttribute('href')),'./impression.html#mirror',
-    'Arrival state changed the archive return route');
+    'Same-document registered arrival did not refresh the archive impression');
+  for(const [room,part] of [['chronicle.html','dates'],['orbit.html','mirror'],['sealed.html','margin']]){
+    await page.goto(base+room+'?v='+cacheBuster+'-contact-'+part+'#registered',{waitUntil:'load',timeout:27000});
+    assert(await page.$eval('.fragment-stamp',e=>e.classList.contains('registration-arrival')),
+      'Registered print route did not leave an arrival impression in '+room);
+    assert.equal(await page.evaluate(p=>localStorage.getItem('nb036-impression-v3:contact:'+p),part),'1',
+      'Registered archive did not record physical print contact: '+room);
+  }
+  await open('impression.html');
+  assert(await page.$eval('#plate',e=>e.classList.contains('contact-complete')),
+    'Four registered archive contacts did not complete the contact history');
+  assert.equal(await page.$$eval('#fixed-pins .transfer-core',xs=>xs.length),4,
+    'Registered print needs four physical transfer cores');
+  assert(await page.$$eval('#fixed-pins .transfer-core',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)>.4)),
+    'Completed contacts did not ink all four registration cores');
+  assert(await page.$$eval('.source-proof',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)<.01)),
+    'Unregistered reprint exposed the full contact ghost before the plate was aligned');
+  await page.focus('#plate');
+  for(let i=0;i<13;i++)await page.keyboard.press('ArrowLeft');
+  assert(await page.$eval('#plate',e=>e.classList.contains('solved')&&e.classList.contains('contact-complete')),
+    'Re-registering the contacted print did not restore the complete exposure');
+  assert(await page.$$eval('.source-proof',xs=>xs.every(x=>{
+    const o=Number(getComputedStyle(x).opacity);return o>=.04&&o<=.09;
+  })),'Completed contact exposure is not the intended quiet all-source ghost');
+  await page.$eval('[data-proof-hit="mirror"]',e=>e.focus());
+  assert(Number(await page.$eval('[data-source-part="mirror"]',e=>getComputedStyle(e).opacity))>.12,
+    'Individual proof did not override the contact exposure');
+  assert(await page.$$eval('.source-proof:not([data-source-part="mirror"])',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)<.02)),
+    'Individual proof failed to suppress the other contact ghosts');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);

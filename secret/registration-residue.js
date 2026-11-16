@@ -3,6 +3,13 @@
   const parts={signal:'keys',chronicle:'dates',orbit:'mirror',sealed:'margin'};
   const id=parts[room];
   if(!id)return;
+  function markContact(){
+    if(localStorage.getItem('nb036-misc-v4:joined')==='1'&&location.hash==='#registered')
+      localStorage.setItem('nb036-impression-v3:contact:'+id,'1');
+  }
+  markContact();
+  addEventListener('hashchange',()=>{markContact();refresh()});
+  addEventListener('pageshow',markContact);
   function refresh(){
     const stamp=document.querySelector('.fragment-stamp');
     if(!stamp)return;
