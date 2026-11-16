@@ -192,5 +192,9 @@
     status.textContent=edition==='paper'?'纸本印图，可保存':'夜色反印图，可保存';
   });
   stage.hidden=false;
+  // Contact is historical state independent of the plate's current rotation.
+  // Restore its classes on every fresh document; CSS decides that the combined
+  // source ghost is visible only while the plate is actually registered.
+  renderContacts();
   if(localStorage.getItem(state)==='1')complete();else render();
 })();
