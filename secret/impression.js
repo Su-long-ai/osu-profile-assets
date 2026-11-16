@@ -8,7 +8,7 @@
   const stage=document.querySelector('.impression-stage'), actions=document.querySelector('#impression-actions');
   const status=document.querySelector('#impression-status'),download=document.querySelector('#impression-download');
   const fixed=document.querySelector('#print-layer'),turn=document.querySelector('#turn-layer'),pins=document.querySelector('#fixed-pins');
-  const proofs=document.querySelector('#source-proofs'),hits=document.querySelector('#source-hits');
+  const proofs=document.querySelector('#source-proofs'),hits=document.querySelector('#source-hits'),pinHits=document.querySelector('#pin-hits');
   const pt=[[100,93],[316,136],[89,275],[272,333]];
   const layout=parts.map((p,i)=>({p,x:i%2?202:81,y:i<2?99:197,i}));
   const groups=(fn)=>layout.map(o=>'<g transform="translate('+o.x+' '+o.y+') scale(.85)">'+fn(o.p,o.i)+'</g>').join('');
@@ -35,6 +35,12 @@
   hits.innerHTML=layout.map(o=>'<g transform="translate('+o.x+' '+o.y+') scale(.85)"><path class="source-hit" data-proof-hit="'+o.p.id+
     '" d="'+o.p.contour+'" stroke="'+o.p.color+'" role="button" tabindex="-1" aria-disabled="true" aria-label="回看'+o.p.name.replace('留下的','对应的')+'主页来源"/></g>').join('');
   const proofHits=[...hits.querySelectorAll('[data-proof-hit]')];
+  const roomByPart={keys:'signal.html',dates:'chronicle.html',mirror:'orbit.html',margin:'sealed.html'};
+  const validRoute=new Set(Object.keys(roomByPart));
+  const routePart=validRoute.has(location.hash.slice(1))?location.hash.slice(1):null;
+  pinHits.innerHTML=parts.map((p,i)=>'<a class="pin-route" data-pin-route="'+p.id+'" tabindex="-1" aria-disabled="true" aria-label="打开'+
+    p.name.replace('留下的','对应的')+'归档"><circle class="pin-hit" cx="'+pt[i][0]+'" cy="'+pt[i][1]+'" r="32"/></a>').join('');
+  const pinRoutes=[...pinHits.querySelectorAll('[data-pin-route]')];
   const editionControl=document.querySelector('#impression-edition');
   const rawFixed=fixed.innerHTML, rawTurn=turn.innerHTML, rawPins=pins.innerHTML;
   // The downloaded proof is the same physical object: keep the registration
@@ -54,6 +60,19 @@
       hit.setAttribute('aria-disabled',String(!enabled));
     });
     if(!enabled){pinnedProof=null;showProof(null)}
+  }
+  function enableRoutes(enabled){
+    pinRoutes.forEach(route=>{
+      const id=route.dataset.pinRoute;
+      route.tabIndex=enabled?0:-1;
+      route.setAttribute('aria-disabled',String(!enabled));
+      if(enabled)route.setAttribute('href','./'+roomByPart[id]+'#registered');
+      else route.removeAttribute('href');
+    });
+    if(!enabled){
+      plate.removeAttribute('data-route');
+      plate.removeAttribute('data-route-preview');
+    }
   }
   function selectEdition(next,remember=true){
     edition=solved&&next==='paper'?'paper':'night';
@@ -89,12 +108,15 @@
     angle=0;solved=true;drag=null;
     localStorage.setItem(state,'1');
     plate.classList.add('solved');actions.hidden=false;
-    plate.setAttribute('aria-disabled','true');
+    plate.removeAttribute('aria-disabled');
     plate.setAttribute('role','group');plate.tabIndex=-1;
     plate.removeAttribute('aria-valuemin');plate.removeAttribute('aria-valuemax');
-    plate.setAttribute('aria-label','套印完成，四片翼可以回看其主页来源');
-    enableProofs(true);
-    status.textContent='套印完成，完整反印图可以保存、回看来源或重新转开';
+    plate.setAttribute('aria-label','套印完成，四片翼可以回看其主页来源，四个套印标记可以打开对应归档');
+    enableProofs(true);enableRoutes(true);
+    pinnedProof=routePart||pinnedProof;
+    if(routePart)plate.dataset.route=routePart;
+    showProof(pinnedProof);
+    status.textContent='套印完成，完整反印图可以保存、回看来源、打开归档或重新转开';
     selectEdition(localStorage.getItem(editionKey),false);render();
   }
   function reset(){
@@ -103,7 +125,8 @@
     plate.setAttribute('role','slider');plate.tabIndex=0;
     plate.setAttribute('aria-valuemin','0');plate.setAttribute('aria-valuemax','359');
     plate.setAttribute('aria-label','反印版，拖动或使用方向键旋转，令四组同色套印点重合');
-    enableProofs(false);
+    enableProofs(false);enableRoutes(false);
+    pinnedProof=null;showProof(null);
     selectEdition('night',false);render();plate.focus();
   }
   function change(a){if(solved)return;angle=norm(a);if(near(angle)<=6)complete();else render()}
@@ -124,9 +147,19 @@
   });
   function activateProof(id){
     if(!solved)return;
+    plate.removeAttribute('data-route');
     pinnedProof=pinnedProof===id?null:id;
     showProof(pinnedProof);
     status.textContent=pinnedProof?'主页来源已显影':'主页来源显影已收起';
+  }
+  for(const route of pinRoutes){
+    const id=route.dataset.pinRoute;
+    const preview=()=>{if(solved){plate.dataset.routePreview=id;showProof(id)}};
+    const restore=()=>{if(solved){plate.removeAttribute('data-route-preview');showProof(pinnedProof)}};
+    route.addEventListener('mouseenter',preview);
+    route.addEventListener('mouseleave',restore);
+    route.addEventListener('focus',preview);
+    route.addEventListener('blur',restore);
   }
   for(const hit of proofHits){
     const id=hit.dataset.proofHit;

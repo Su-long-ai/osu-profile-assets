@@ -335,13 +335,19 @@ assert.equal(invalidSingleEval.length,0,
   // The four source rooms physically leave the same pieces used in assembly.
   for(const room of ['signal.html','chronicle.html','orbit.html','sealed.html']){
     await open(room);
-    assert.equal(await page.$$eval('link[href*="registration-residue.css?v=1"]',xs=>xs.length),1,
+    assert.equal(await page.$eval('link[href*="registration-residue.css?v=1"]',xs=>xs.length),1,
       'Historical registration stylesheet missing: '+room);
+    assert.equal(await page.$eval('link[href*="registered-graph.css?v=1"]',xs=>xs.length),1,
+      'Registered archive graph stylesheet missing: '+room);
     assert.equal(await page.$$eval('.fragment-stamp:not([hidden]) .fragment-art',e=>e.length),1,
       'Solved room lost the actual wing fragment: '+room);
     assert.equal(await page.$eval('.fragment-stamp',el=>el.tagName),'A','Wing should be a semantic return link');
     assert(!(await page.$eval('.fragment-stamp',el=>el.classList.contains('registered'))),
       'Registration residue leaked into the first-play room: '+room);
+    assert.equal(await page.$eval('.fragment-stamp',el=>el.getAttribute('href')),'./',
+      'First-play wing stopped returning to the hub: '+room);
+    assert(!(await page.$eval('.fragment-stamp',el=>el.classList.contains('route-to-print'))),
+      'Second-act archive route leaked into first play: '+room);
     assert((await page.$eval('.fragment-hairline',e=>e.getBoundingClientRect().width))>=28,
       'First-play fragment hairline was replaced before assembly history: '+room);
     await page.tap('.fragment-stamp:not([hidden])');
@@ -491,21 +497,34 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('link[href*="impression-source.css?v=1"]',xs=>xs.length),1,
+  assert.equal(await page.$eval('link[href*="impression-source.css?v=1"]',xs=>xs.length),1,
     'Impression source-proof stylesheet missing');
-  assert.equal(await page.$$eval('.source-proof',xs=>xs.length),4,'Registered print needs four source-proof layers');
+  assert.equal(await page.$eval('link[href*="registered-graph.css?v=1"]',xs=>xs.length),1,
+    'Registered archive graph stylesheet missing from impression');
+  assert.equal(await page.$eval('.source-proof',xs=>xs.length),4,'Registered print needs four source-proof layers');
+  assert.equal(await page.$eval('.pin-route',xs=>xs.length),4,'Registered print needs four archive routes');
   assert.equal(await page.$$eval('[data-proof-hit]',xs=>xs.length),4,'Registered print needs four physical proof regions');
   assert.equal(await page.$$eval('[data-pin-part]',xs=>xs.length),4,'Registered print needs four source registration pins');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Fresh impression must remain a rotation slider');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Fresh impression slider left the focus order');
-  assert.equal(await page.$$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+  assert.equal(await page.$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
     'Source proofs must not become interactive before registration');
+  assert.equal(await page.$eval('.pin-route[tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+    'Archive routes must not become interactive before registration');
+  assert.equal(await page.$eval('.pin-route[href]',xs=>xs.length),0,
+    'Fresh impression exposed archive destinations before registration');
   await page.focus('#plate');
   for(let i=0;i<13;i++)await page.keyboard.press('ArrowLeft');
   assert(await page.$eval('#plate',e=>e.classList.contains('solved')),'Keyboard registration did not complete the print');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'group','Solved print must retire slider semantics');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),-1,'Solved print slider stayed in the focus order');
-  assert.equal(await page.$$eval('[data-proof-hit][tabindex="0"][aria-disabled="false"]',xs=>xs.length),4,
+  assert.equal(await page.$eval('#plate',e=>e.hasAttribute('aria-disabled')),false,
+    'Solved print group disabled its own interactive archive descendants');
+  assert.equal(await page.$eval('.pin-route[tabindex="0"][aria-disabled="false"][href]',xs=>xs.length),4,
+    'Solved print must expose four registered archive links');
+  const pinBoxes=await page.$eval('.pin-route',xs=>xs.map(x=>{const r=x.getBoundingClientRect();return [r.width,r.height]}));
+  assert(pinBoxes.every(([w,h])=>w>=40&&h>=40),'Registered archive pin targets are too small: '+JSON.stringify(pinBoxes));
+  assert.equal(await page.$eval('[data-proof-hit][tabindex="0"][aria-disabled="false"]',xs=>xs.length),4,
     'Solved print must expose four source-proof regions');
   await page.$eval('[data-proof-hit="keys"]',e=>e.focus());
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Focused wing did not reveal its source');
@@ -516,6 +535,14 @@ assert.equal(invalidSingleEval.length,0,
     'One source proof revealed the other wings');
   assert.equal(await page.$eval('[data-proof-hit="keys"]',e=>getComputedStyle(e).outlineStyle),'none',
     'Source-proof keyboard focus drew a UI rectangle');
+  await page.focus('.pin-route[data-pin-route="mirror"]');
+  assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'mirror',
+    'Focused registration pin did not preview its archive source');
+  assert.equal(await page.$eval('#plate',e=>e.dataset.routePreview),'mirror',
+    'Focused registration pin did not mark its route');
+  assert.equal(await page.$eval('.pin-route[data-pin-route="mirror"]',e=>getComputedStyle(e).outlineStyle),'none',
+    'Registration pin focus drew a UI rectangle');
+  await page.$eval('[data-proof-hit="keys"]',e=>e.focus());
   await page.keyboard.press('Enter');
   await page.focus('#impression-edition');
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Pinned source proof did not survive focus movement');
@@ -539,8 +566,12 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('#reprint');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Reprint did not restore slider semantics');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Reprint did not restore slider focus');
-  assert.equal(await page.$$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+  assert.equal(await page.$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
     'Reprint left source proofs interactive');
+  assert.equal(await page.$eval('.pin-route[tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+    'Reprint left registered archive routes interactive');
+  assert.equal(await page.$eval('.pin-route[href]',xs=>xs.length),0,
+    'Reprint kept stale archive destinations');
   assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Reprint left a stale source proof visible');
 
   // After historical assembly, revisiting each solved archive carries the exact impression registration signature.
@@ -550,6 +581,12 @@ assert.equal(invalidSingleEval.length,0,
       'Joined archive lost its registration residue: '+room);
     assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.fragment),part,
       'Registration residue attached to the wrong fragment: '+room);
+    assert(await page.$eval('.fragment-stamp',e=>e.classList.contains('route-to-print')),
+      'Joined archive wing did not become a route back to the registered print: '+room);
+    assert.equal(await page.$eval('.fragment-stamp',e=>e.getAttribute('href')),'./impression.html#'+part,
+      'Joined archive wing points to the wrong registered print position: '+room);
+    assert.equal(await page.$eval('.breadcrumb',e=>e.getAttribute('href')),'./',
+      'Archive breadcrumb must keep the direct hub route: '+room);
     const reg=await page.$eval('.fragment-hairline',e=>{
       const r=e.getBoundingClientRect(),s=getComputedStyle(e),b=getComputedStyle(e,'::before'),a=getComputedStyle(e,'::after');
       return {w:r.width,h:r.height,border:s.borderTopWidth,bw:b.width,bh:b.height,bs:b.boxShadow,aw:a.width,ah:a.height,as:a.boxShadow};
