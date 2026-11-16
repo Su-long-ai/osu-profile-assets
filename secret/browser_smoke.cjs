@@ -58,6 +58,9 @@ const path=require('node:path');
   assert.equal(await page.$$eval('.archive-link',xs=>xs.length),4,'Post-completion archive needs four source links');
   assert.equal(await page.$$eval('.source-afterimage',xs=>xs.length),4,'Hub needs four source-native afterimages');
   assert.equal(await page.$$eval('link[href*="source-memory.css?v=2"]',xs=>xs.length),1,'Source-memory stylesheet missing');
+  assert.equal(await page.$$eval('link[href*="prejoin-cue.css?v=1"]',xs=>xs.length),1,'Pre-assembly convergence stylesheet missing');
+  assert.equal(await page.$$eval('.archive-link[pathLength="1"]',xs=>xs.length),4,'Correspondence paths need normalized draw lengths');
+  assert.equal(await page.$$eval('.gallery.ready,.gallery.prejoin-cue',xs=>xs.length),0,'Fresh hub must not expose the final convergence cue');
   assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)===0)),
     'Source afterimages must stay invisible before assembly');
   assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>getComputedStyle(x).pointerEvents==='none')),
@@ -280,6 +283,11 @@ const path=require('node:path');
   assert(await page.$$eval('.tile.discovered',xs=>xs.every(x=>getComputedStyle(x,'::after').content==='none')),
     'Solved state must live in each artwork, not a generic completion badge');
   assert(!(await page.$eval('#completion-seal',e=>e.hidden)),'Four discoveries need a subtle closing motif');
+  assert(await page.$eval('.gallery',e=>e.classList.contains('ready')),'Four discoveries must put the hub into ready state');
+  await page.waitForFunction(()=>document.querySelector('.gallery')?.classList.contains('prejoin-cue'),{timeout:4000});
+  assert(['prejoin-map','prejoin-map-mobile'].includes(
+    await page.$eval('.archive-map',e=>getComputedStyle(e).animationName)),
+    'Ready hub must briefly converge the four real correspondence curves');
   assert.equal(await page.$eval('#completion-seal .seal-ready-mark',e=>getComputedStyle(e).display),'inline','Ready state must use the neutral four-root mark');
   assert(await page.$eval('#completion-seal',e=>e.getAttribute('href')==='./finale.html'),
     'Completed collection must enable an actual final puzzle link');
@@ -350,6 +358,7 @@ const path=require('node:path');
   assert.equal(await page.$eval('#assembly-home',e=>e.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Completed butterfly must return to the source profile');
   await page.goto(base+'?v='+cacheBuster+'-joined',{waitUntil:'load',timeout:27000});
   assert(await page.$eval('.gallery',e=>e.classList.contains('joined')),'Completed gallery must enter joined archive state');
+  assert(await page.$eval('.gallery',e=>!e.classList.contains('prejoin-cue')),'Completed gallery must not replay the pre-assembly cue');
   assert(Number(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity))>.5,'Joined archive map must become visible');
   assert.equal(await page.$$eval('.archive-root',xs=>xs.length),4,'Joined archive must show four corresponding roots');
   await new Promise(resolve=>setTimeout(resolve,520));
