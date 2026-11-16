@@ -472,6 +472,49 @@ const path=require('node:path');
   });
   assert(sameArtwork,'Finished home butterfly differs from the four original wing outlines');
 
+  // Post-registration second read: the clean butterfly can reveal one real profile source at a time.
+  await page.evaluate(()=>{
+    localStorage.removeItem('nb036-impression-v1:aligned');
+    localStorage.removeItem('nb036-impression-v2:edition');
+  });
+  await open('impression.html');
+  assert.equal(await page.$eval('link[href*="impression-source.css?v=1"]',xs=>xs.length),1,
+    'Impression source-proof stylesheet missing');
+  assert.equal(await page.$eval('.source-proof',xs=>xs.length),4,'Registered print needs four source-proof layers');
+  assert.equal(await page.$eval('[data-proof-hit]',xs=>xs.length),4,'Registered print needs four physical proof regions');
+  assert.equal(await page.$eval('[data-pin-part]',xs=>xs.length),4,'Registered print needs four source registration pins');
+  assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Fresh impression must remain a rotation slider');
+  assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Fresh impression slider left the focus order');
+  assert.equal(await page.$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+    'Source proofs must not become interactive before registration');
+  await page.focus('#plate');
+  for(let i=0;i<13;i++)await page.keyboard.press('ArrowLeft');
+  assert(await page.$eval('#plate',e=>e.classList.contains('solved')),'Keyboard registration did not complete the print');
+  assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'group','Solved print must retire slider semantics');
+  assert.equal(await page.$eval('#plate',e=>e.tabIndex),-1,'Solved print slider stayed in the focus order');
+  assert.equal(await page.$eval('[data-proof-hit][tabindex="0"][aria-disabled="false"]',xs=>xs.length),4,
+    'Solved print must expose four source-proof regions');
+  await page.focus('[data-proof-hit="keys"]');
+  assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Focused wing did not reveal its source');
+  assert(Number(await page.$eval('[data-source-part="keys"]',e=>getComputedStyle(e).opacity))>.12,
+    'Focused key wing source never appeared');
+  assert(await page.$eval('.source-proof:not([data-source-part="keys"])',xs=>xs.every(e=>Number(getComputedStyle(e).opacity)<.03)),
+    'One source proof revealed the other wings');
+  assert.equal(await page.$eval('[data-proof-hit="keys"]',e=>getComputedStyle(e).outlineStyle),'none',
+    'Source-proof keyboard focus drew a UI rectangle');
+  await page.$eval('[data-proof-hit="keys"]',e=>e.click());
+  await page.focus('#impression-edition');
+  assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Pinned source proof did not survive focus movement');
+  await page.focus('[data-proof-hit="keys"]');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Escape did not dismiss the source proof');
+  await page.click('#reprint');
+  assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Reprint did not restore slider semantics');
+  assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Reprint did not restore slider focus');
+  assert.equal(await page.$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+    'Reprint left source proofs interactive');
+  assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Reprint left a stale source proof visible');
+
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
   await page.waitForFunction(()=>location.pathname.replace(/\/$/,'').endsWith('/secret')&&document.querySelector('.gallery'),{timeout:10000});

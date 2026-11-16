@@ -8,6 +8,7 @@
   const stage=document.querySelector('.impression-stage'), actions=document.querySelector('#impression-actions');
   const status=document.querySelector('#impression-status'),download=document.querySelector('#impression-download');
   const fixed=document.querySelector('#print-layer'),turn=document.querySelector('#turn-layer'),pins=document.querySelector('#fixed-pins');
+  const proofs=document.querySelector('#source-proofs'),hits=document.querySelector('#source-hits');
   const pt=[[100,93],[316,136],[89,275],[272,333]];
   const layout=parts.map((p,i)=>({p,x:i%2?202:81,y:i<2?99:197,i}));
   const groups=(fn)=>layout.map(o=>'<g transform="translate('+o.x+' '+o.y+') scale(.85)">'+fn(o.p,o.i)+'</g>').join('');
@@ -16,13 +17,40 @@
   const grain=groups((p,i)=>'<defs><clipPath id="ink-clip-'+i+'"><path d="'+p.contour+'"/></clipPath></defs><g clip-path="url(#ink-clip-'+i+')" stroke="'+p.color+'" fill="none"><path d="'+p.contour+'" fill="'+p.color+'" fill-opacity=".055" stroke="none"/>'+Array.from({length:25},(_,n)=>'<path d="M-25 '+(n*7-65)+'L170 '+(n*7+38)+'" stroke-width=".45" opacity="'+(n%3===0?.26:.12)+'"/>').join('')+'</g>');
   const body='<path d="M200 185V231M200 193Q193 177 186 172M200 193Q207 177 214 172" stroke="#b4c8ce" stroke-width=".75" fill="none" stroke-linecap="round"/>';
   fixed.innerHTML='<g class="fixed-outline">'+outlines+'</g><g class="print-grain">'+grain+body+'</g>';
-  pins.innerHTML=pt.map(([x,y],i)=>'<g stroke="'+parts[i].color+'" fill="none"><circle cx="'+x+'" cy="'+y+'" r="5.8" stroke-width=".9"/><path d="M'+(x-10)+' '+y+'h3m14 0h3M'+x+' '+(y-10)+'v3m0 14v3" stroke-width=".65" opacity=".6"/></g>').join('');
+  pins.innerHTML=pt.map(([x,y],i)=>'<g data-pin-part="'+parts[i].id+'" stroke="'+parts[i].color+'" fill="none"><circle cx="'+x+'" cy="'+y+'" r="5.8" stroke-width=".9"/><path d="M'+(x-10)+' '+y+'h3m14 0h3M'+x+' '+(y-10)+'v3m0 14v3" stroke-width=".65" opacity=".6"/></g>').join('');
   turn.innerHTML='<g class="moving-veins">'+veins+'</g><g class="registration">'+pt.map(([x,y],i)=>'<circle cx="'+x+'" cy="'+y+'" r="3.1" fill="'+parts[i].color+'"/>').join('')+'<path d="M200 49A151 151 0 0 1 250 57" stroke="#9ebdc8" stroke-opacity=".65" fill="none" stroke-width="1.4" stroke-linecap="round"/></g>';
+  const sourceSpec={
+    keys:{href:'./source-memory-keys.png',x:0,y:2,w:142,h:111,fit:'xMidYMid slice'},
+    dates:{href:'./source-memory-dates.png',x:0,y:20,w:142,h:74,fit:'xMidYMid meet'},
+    mirror:{href:'./impression-proof-mirror.png',x:29,y:9,w:84,h:96,fit:'xMidYMid meet'},
+    margin:{href:'./impression-proof-margin.png',x:40,y:4,w:62,h:106,fit:'xMidYMid meet'}
+  };
+  const proofDefs=parts.map(p=>'<clipPath id="impression-source-'+p.id+'"><path d="'+p.contour+'"/></clipPath>').join('');
+  proofs.innerHTML='<defs>'+proofDefs+'</defs>'+layout.map(o=>{
+    const q=sourceSpec[o.p.id],clip='impression-source-'+o.p.id;
+    return '<g data-source-group="'+o.p.id+'" transform="translate('+o.x+' '+o.y+') scale(.85)">'+
+      '<image class="source-proof" data-source-part="'+o.p.id+'" href="'+q.href+'" x="'+q.x+'" y="'+q.y+'" width="'+q.w+'" height="'+q.h+'" preserveAspectRatio="'+q.fit+'" clip-path="url(#'+clip+')"/>'+
+      '<path class="source-proof-edge" d="'+o.p.contour+'" fill="none" stroke="'+o.p.color+'" stroke-width=".7"/></g>';
+  }).join('');
+  hits.innerHTML=layout.map(o=>'<g transform="translate('+o.x+' '+o.y+') scale(.85)"><path class="source-hit" data-proof-hit="'+o.p.id+
+    '" d="'+o.p.contour+'" stroke="'+o.p.color+'" role="button" tabindex="-1" aria-disabled="true" aria-label="回看'+o.p.name.replace('留下的','对应的')+'主页来源"/></g>').join('');
+  const proofHits=[...hits.querySelectorAll('[data-proof-hit]')];
   const editionControl=document.querySelector('#impression-edition');
   const rawFixed=fixed.innerHTML, rawTurn=turn.innerHTML, rawPins=pins.innerHTML;
   const paperInk={'#9cc4c9':'#386770','#a6c7ce':'#416773','#b7adcb':'#665577','#bba8c9':'#75556e','#beaace':'#846674','#a8cbd1':'#386770','#b4c8ce':'#59696a','#9ebdc8':'#53727a','#b7ccd2':'#586c70','#536b79':'#84918d','#121820':'#e6e2d7'};
   const recolor=(source,paper)=>paper?source.replace(/#[0-9a-f]{6}/gi,x=>paperInk[x.toLowerCase()]||x):source;
-  let angle=67,solved=false,drag=null,url='',edition='night';
+  let angle=67,solved=false,drag=null,url='',edition='night',pinnedProof=null;
+  function showProof(id){
+    if(solved&&id)plate.dataset.proof=id;
+    else plate.removeAttribute('data-proof');
+  }
+  function enableProofs(enabled){
+    proofHits.forEach(hit=>{
+      hit.tabIndex=enabled?0:-1;
+      hit.setAttribute('aria-disabled',String(!enabled));
+    });
+    if(!enabled){pinnedProof=null;showProof(null)}
+  }
   function selectEdition(next,remember=true){
     edition=solved&&next==='paper'?'paper':'night';
     const paper=edition==='paper';
@@ -40,8 +68,12 @@
   const near=a=>Math.min(norm(a),360-norm(a));
   function render(){
     turn.setAttribute('transform','rotate('+angle+' 200 200)');
-    plate.setAttribute('aria-valuenow',String(Math.round(norm(angle))%360));
-    plate.setAttribute('aria-valuetext',solved?'套印完成':('已旋转 '+Math.round(norm(angle))+' 度'));
+    if(solved){
+      plate.removeAttribute('aria-valuenow');plate.removeAttribute('aria-valuetext');
+    }else{
+      plate.setAttribute('aria-valuenow',String(Math.round(norm(angle))%360));
+      plate.setAttribute('aria-valuetext','已旋转 '+Math.round(norm(angle))+' 度');
+    }
   }
   function exportPrint(){
     if(url)URL.revokeObjectURL(url);
@@ -53,12 +85,21 @@
     angle=0;solved=true;drag=null;
     localStorage.setItem(state,'1');
     plate.classList.add('solved');actions.hidden=false;
-    plate.setAttribute('aria-disabled','true');status.textContent='套印完成，完整反印图可以保存或重新转开';
+    plate.setAttribute('aria-disabled','true');
+    plate.setAttribute('role','group');plate.tabIndex=-1;
+    plate.removeAttribute('aria-valuemin');plate.removeAttribute('aria-valuemax');
+    plate.setAttribute('aria-label','套印完成，四片翼可以回看其主页来源');
+    enableProofs(true);
+    status.textContent='套印完成，完整反印图可以保存、回看来源或重新转开';
     selectEdition(localStorage.getItem(editionKey),false);render();
   }
   function reset(){
     angle=67;solved=false;drag=null;localStorage.removeItem(state);
     plate.classList.remove('solved');actions.hidden=true;plate.removeAttribute('aria-disabled');
+    plate.setAttribute('role','slider');plate.tabIndex=0;
+    plate.setAttribute('aria-valuemin','0');plate.setAttribute('aria-valuemax','359');
+    plate.setAttribute('aria-label','反印版，拖动或使用方向键旋转，令四组同色套印点重合');
+    enableProofs(false);
     selectEdition('night',false);render();plate.focus();
   }
   function change(a){if(solved)return;angle=norm(a);if(near(angle)<=6)complete();else render()}
@@ -77,6 +118,25 @@
     if(delta!==undefined){e.preventDefault();change(angle+delta)}
     else if(e.key==='PageUp'||e.key==='PageDown'){e.preventDefault();change(angle+(e.key==='PageUp'?30:-30))}
   });
+  for(const hit of proofHits){
+    const id=hit.dataset.proofHit;
+    hit.addEventListener('mouseenter',()=>{if(solved)showProof(id)});
+    hit.addEventListener('mouseleave',()=>{if(solved)showProof(pinnedProof)});
+    hit.addEventListener('focus',()=>{if(solved)showProof(id)});
+    hit.addEventListener('blur',()=>{if(solved)showProof(pinnedProof)});
+    hit.addEventListener('click',event=>{
+      if(!solved)return;
+      event.preventDefault();event.stopPropagation();
+      pinnedProof=pinnedProof===id?null:id;
+      showProof(pinnedProof);
+      status.textContent=pinnedProof?'主页来源已显影':'主页来源显影已收起';
+    });
+    hit.addEventListener('keydown',event=>{
+      if(!solved)return;
+      if(event.key==='Enter'||event.key===' '){event.preventDefault();hit.click()}
+      else if(event.key==='Escape'){event.preventDefault();pinnedProof=null;showProof(null)}
+    });
+  }
   document.querySelector('#reprint').addEventListener('click',reset);
   editionControl.addEventListener('click',()=>{
     if(!solved)return;
