@@ -226,11 +226,13 @@ const path=require('node:path');
   assert.equal(await page.$$eval('[data-star].unmatched',e=>e.length),3);
   assert(await page.$eval('#axis-beacon',e=>e.hasAttribute('hidden')),'Mirror cue did not yield to the revealed guides');
   await shot('wing-mobile.png');
-  await page.tap('#axis-hit');
-  assert(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')));
-  await page.tap('#axis-hit');
+  assert(await page.$eval('#axis-hit',e=>e.disabled),'Solved mirror axis must become archival');
+  await page.$eval('#axis-hit',e=>e.click());
+  assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))),'Solved mirror must not be visually hidden');
   await page.reload({waitUntil:'load'});
   assert(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))),'Mirror completion should survive reload');
+  assert.equal(await page.$$eval('[data-star].matched',e=>e.length),4,'Solved mirror lost its four matched stars after reload');
+  assert(await page.$eval('#axis-hit',e=>e.disabled),'Solved mirror axis unlocked after reload');
 
   await open('sealed.html');
   await wordless();
@@ -262,10 +264,14 @@ const path=require('node:path');
   assert(!(await page.$eval('#correction',e=>e.hasAttribute('hidden'))));
   assert(await page.$eval('#paper',e=>e.classList.contains('corrected')));
   assert(await discovered('margin'));
+  assert(await page.$eval('#scribble',e=>e.disabled),'Solved paper correction must become archival');
+  await page.$eval('#scribble',e=>e.click());
+  assert(await page.$eval('#paper',e=>e.classList.contains('corrected')),'Solved paper was visually undone');
   await wordless();
   await shot('paper-mobile.png');
   await page.reload({waitUntil:'load'});
   assert(await page.$eval('#paper',e=>e.classList.contains('corrected')),'Paper completion should survive reload');
+  assert(await page.$eval('#scribble',e=>e.disabled),'Solved paper correction unlocked after reload');
 
   await open('stats.html');
   await wordless();
@@ -510,14 +516,22 @@ const path=require('node:path');
   }
 
   // HTML button keyboard activation must toggle exactly once (not twice).
+  // Test this in an unsolved room: solved rooms are intentionally archival.
   await page.setViewport({width:390,height:844,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+  await page.evaluate(()=>{
+    localStorage.removeItem('nb036-misc-v3:mirror');
+    localStorage.removeItem('nb036-visual-v1:mirror');
+    localStorage.removeItem('nb036-visual-v2:star-selection');
+  });
   await open('orbit.html');
+  assert(!(await page.$eval('#axis-hit',e=>e.disabled)),'Fresh mirror axis must remain interactive');
   if(!(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden'))))await page.tap('#axis-hit');
   await page.focus('#axis-hit');
   await page.keyboard.press('Enter');
   assert.equal(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')),false,'Enter did not turn on mirror');
   await page.keyboard.press('Space');
   assert.equal(await page.$eval('#mirror-guides',e=>e.hasAttribute('hidden')),true,'Space did not turn off mirror');
+  await page.evaluate(()=>localStorage.setItem('nb036-misc-v3:mirror','1'));
 
   // No real analytics requests are sent. Simulated fetch checks de-duplication
   // and that owner flag wins even if the local reported marker was cleared.
