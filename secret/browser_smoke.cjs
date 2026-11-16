@@ -72,6 +72,8 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('link[href*="prejoin-cue.css?v=1"]',xs=>xs.length),1,'Pre-assembly convergence stylesheet missing');
   assert.equal(await page.$$eval('.archive-link[pathLength="1"]',xs=>xs.length),4,'Correspondence paths need normalized draw lengths');
   assert.equal(await page.$$eval('.gallery.ready,.gallery.prejoin-cue',xs=>xs.length),0,'Fresh hub must not expose the final convergence cue');
+  assert.equal(await page.$eval('.impression-entry',e=>getComputedStyle(e).display),'none',
+    'First act leaked the second-act print entry');
   assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)===0)),
     'Source afterimages must stay invisible before assembly');
   assert(await page.$$eval('.source-afterimage',xs=>xs.every(x=>getComputedStyle(x).pointerEvents==='none')),
@@ -341,7 +343,7 @@ assert.equal(invalidSingleEval.length,0,
     await open(room);
     assert.equal(await page.$$eval('link[href*="registration-residue.css?v=1"]',xs=>xs.length),1,
       'Historical registration stylesheet missing: '+room);
-    assert.equal(await page.$$eval('link[href*="registered-graph.css?v=1"]',xs=>xs.length),1,
+    assert.equal(await page.$$eval('link[href*="registered-graph.css?v=2"]',xs=>xs.length),1,
       'Registered archive graph stylesheet missing: '+room);
     assert.equal(await page.$$eval('.fragment-stamp:not([hidden]) .fragment-art',e=>e.length),1,
       'Solved room lost the actual wing fragment: '+room);
@@ -412,6 +414,12 @@ assert.equal(invalidSingleEval.length,0,
   assert(await page.$eval('.gallery',e=>!e.classList.contains('prejoin-cue')),'Completed gallery must not replay the pre-assembly cue');
   assert(Number(await page.$eval('.archive-map',e=>getComputedStyle(e).opacity))>.5,'Joined archive map must become visible');
   assert.equal(await page.$$eval('.archive-root',xs=>xs.length),4,'Joined archive must show four corresponding roots');
+  assert.notEqual(await page.$eval('.impression-entry',e=>getComputedStyle(e).display),'none',
+    'Joined hub did not expose the second-act print entry');
+  assert.equal(await page.$$eval('.impression-entry circle[r="5.8"]',xs=>xs.length),1,
+    'Second-act entry no longer speaks the registration-ring language');
+  assert.equal(await page.$$eval('.impression-entry path[d*="M4 14h3"]',xs=>xs.length),1,
+    'Second-act entry lost its physical registration ticks');
   await new Promise(resolve=>setTimeout(resolve,520));
   const memories=await page.evaluate(()=>[...document.querySelectorAll('.source-afterimage')].map(e=>({
     opacity:Number(getComputedStyle(e).opacity),
@@ -503,7 +511,7 @@ assert.equal(invalidSingleEval.length,0,
   await open('impression.html');
   assert.equal(await page.$$eval('link[href*="impression-source.css?v=1"]',xs=>xs.length),1,
     'Impression source-proof stylesheet missing');
-  assert.equal(await page.$$eval('link[href*="registered-graph.css?v=1"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('link[href*="registered-graph.css?v=2"]',xs=>xs.length),1,
     'Registered archive graph stylesheet missing from impression');
   assert.equal(await page.$$eval('.source-proof',xs=>xs.length),4,'Registered print needs four source-proof layers');
   assert.equal(await page.$$eval('.pin-route',xs=>xs.length),4,'Registered print needs four archive routes');
@@ -591,6 +599,8 @@ assert.equal(invalidSingleEval.length,0,
       'Joined archive wing points to the wrong registered print position: '+room);
     assert.equal(await page.$eval('.breadcrumb',e=>e.getAttribute('href')),'./',
       'Archive breadcrumb must keep the direct hub route: '+room);
+    assert(!(await page.$eval('.fragment-stamp',e=>e.classList.contains('registration-arrival'))),
+      'Ordinary archive revisit falsely played a registered arrival: '+room);
     const reg=await page.$eval('.fragment-hairline',e=>{
       const r=e.getBoundingClientRect(),s=getComputedStyle(e),b=getComputedStyle(e,'::before'),a=getComputedStyle(e,'::after');
       return {w:r.width,h:r.height,border:s.borderTopWidth,bw:b.width,bh:b.height,bs:b.boxShadow,aw:a.width,ah:a.height,as:a.boxShadow};
@@ -603,6 +613,12 @@ assert.equal(invalidSingleEval.length,0,
     assert.equal(await page.$$eval('.registration-residue,[data-registration-control]',xs=>xs.length),0,
       'Historical registration mark introduced a new UI control: '+room);
   }
+
+  await page.goto(base+'orbit.html#registered?v='+cacheBuster+'-arrival',{waitUntil:'load',timeout:27000});
+  assert(await page.$eval('.fragment-stamp',e=>e.classList.contains('registration-arrival')),
+    'Registered print route did not leave an arrival impression in its archive');
+  assert.equal(await page.$eval('.fragment-stamp',e=>e.getAttribute('href')),'./impression.html#mirror',
+    'Arrival state changed the archive return route');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);

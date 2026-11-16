@@ -11,6 +11,7 @@
     stamp.dataset.fragment=id;
     stamp.classList.toggle('registered',joined);
     stamp.classList.toggle('route-to-print',joined);
+    stamp.classList.toggle('registration-arrival',joined&&location.hash==='#registered');
     stamp.setAttribute('href',joined?'./impression.html#'+id:'./');
     stamp.setAttribute('aria-label',joined?
       stamp.dataset.hubLabel.replace('返回图集','返回反印版，对应套印位置'):
