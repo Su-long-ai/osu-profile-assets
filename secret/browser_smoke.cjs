@@ -493,6 +493,11 @@ assert.equal(invalidSingleEval.length,0,
   assert(await page.$eval('.assembly-board',e=>e.classList.contains('is-solved')),'Completed drawing lost on refresh');
   await open();
   assert(await page.$eval('#completion-seal',e=>e.classList.contains('complete')),'Gallery did not retain completed butterfly');
+  assert.equal(await page.$$eval('link[href*="registration-return.css?v=1"]',xs=>xs.length),1,'Profile-return registration stylesheet missing');
+  await page.goto(base+'?source=registration&v='+cacheBuster+'-profile-return',{waitUntil:'load',timeout:27000});
+  await page.waitForFunction(()=>document.querySelector('.shell')?.classList.contains('registration-return'),{timeout:2500});
+  assert.notEqual(await page.$eval('.impression-entry svg',e=>getComputedStyle(e).filter),'none','Profile registration return did not acknowledge the impression entry');
+  await page.waitForFunction(()=>!document.querySelector('.shell')?.classList.contains('registration-return'),{timeout:2500});
   assert(await page.$eval('.seal-ready-mark',e=>getComputedStyle(e).display==='none'),'Finished hub still shows the ready mark');
   assert(await page.$eval('.seal-wings',e=>getComputedStyle(e).display!=='none'),'Finished hub did not reveal full butterfly');
   assert(await page.$eval('.seal-body',e=>getComputedStyle(e).display!=='none'),'Finished hub did not reveal the butterfly body');
