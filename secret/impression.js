@@ -37,6 +37,10 @@
   const proofHits=[...hits.querySelectorAll('[data-proof-hit]')];
   const editionControl=document.querySelector('#impression-edition');
   const rawFixed=fixed.innerHTML, rawTurn=turn.innerHTML, rawPins=pins.innerHTML;
+  // The downloaded proof is the same physical object: keep the registration
+  // geometry, but strip DOM-only part labels so the file carries no textual answer.
+  const exportPins='<g class="export-registration-pins" opacity=".62">'+
+    rawPins.replace(/ data-pin-part="[^"]+"/g,'')+'</g>';
   const paperInk={'#9cc4c9':'#386770','#a6c7ce':'#416773','#b7adcb':'#665577','#bba8c9':'#75556e','#beaace':'#846674','#a8cbd1':'#386770','#b4c8ce':'#59696a','#9ebdc8':'#53727a','#b7ccd2':'#586c70','#536b79':'#84918d','#121820':'#e6e2d7'};
   const recolor=(source,paper)=>paper?source.replace(/#[0-9a-f]{6}/gi,x=>paperInk[x.toLowerCase()]||x):source;
   let angle=67,solved=false,drag=null,url='',edition='night',pinnedProof=null;
@@ -77,7 +81,7 @@
   }
   function exportPrint(){
     if(url)URL.revokeObjectURL(url);
-    const source='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="1200" height="1200"><rect width="400" height="400" fill="#121820"/><g stroke="#536b79" stroke-width=".75" fill="none"><path d="M42 60V42H60M340 42H358V60M358 340V358H340M60 358H42V340"/></g>'+grain+outlines+veins+body+'</svg>';
+    const source='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="1200" height="1200"><rect width="400" height="400" fill="#121820"/><g stroke="#536b79" stroke-width=".75" fill="none"><path d="M42 60V42H60M340 42H358V60M358 340V358H340M60 358H42V340"/></g>'+grain+outlines+veins+body+exportPins+'</svg>';
     url=URL.createObjectURL(new Blob([recolor(source,edition==='paper')],{type:'image/svg+xml'}));
     download.href=url;
   }

@@ -522,6 +522,20 @@ assert.equal(invalidSingleEval.length,0,
   await page.$eval('[data-proof-hit="keys"]',e=>e.focus());
   await page.keyboard.press('Escape');
   assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Escape did not dismiss the source proof');
+  const nightExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
+  assert(nightExport.includes('class="export-registration-pins"'),'Downloaded night print lost its four registration marks');
+  assert.equal((nightExport.match(/r="5\.8"/g)||[]).length,4,'Downloaded night print needs four registration rings');
+  assert(!nightExport.includes('data-pin-part='),'Downloaded print leaked DOM-only part labels');
+  assert(!nightExport.includes('<image')&&!nightExport.includes('source-memory'),
+    'Temporary source-proof raster leaked into the downloadable artifact');
+  await page.click('#impression-edition');
+  const paperExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
+  assert(paperExport.includes('class="export-registration-pins"'),'Downloaded paper print lost its four registration marks');
+  assert.equal((paperExport.match(/r="5\.8"/g)||[]).length,4,'Downloaded paper print needs four registration rings');
+  assert(paperExport.includes('#386770')&&paperExport.includes('#665577')&&paperExport.includes('#416773')&&paperExport.includes('#75556e'),
+    'Paper export registration pins were not recolored with the print');
+  assert(!paperExport.includes('<image')&&!paperExport.includes('source-memory'),
+    'Paper export leaked a temporary source-proof raster');
   await page.click('#reprint');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Reprint did not restore slider semantics');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Reprint did not restore slider focus');
