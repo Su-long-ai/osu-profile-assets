@@ -520,6 +520,10 @@ assert.equal(invalidSingleEval.length,0,
     'Impression source-proof stylesheet missing');
   assert.equal(await page.$$eval('link[href*="registered-graph.css?v=2"]',xs=>xs.length),1,
     'Registered archive graph stylesheet missing from impression');
+  assert.equal(await page.$$eval('link[href*="verso.css?v=1"]',xs=>xs.length),1,'Profile-verso stylesheet missing from impression');
+  assert.equal(await page.$$eval('#verso-entry',xs=>xs.length),1,'Impression lost its physical verso axis');
+  assert.equal(await page.$eval('#verso-entry',e=>e.tabIndex),-1,'Verso axis must stay out of focus before all archive contacts');
+  assert.equal(await page.$eval('#verso-entry',e=>e.hasAttribute('href')),false,'Verso route leaked before all archive contacts');
   assert.equal(await page.$$eval('.source-proof',xs=>xs.length),4,'Registered print needs four source-proof layers');
   assert.equal(await page.$$eval('.pin-route',xs=>xs.length),4,'Registered print needs four archive routes');
   assert.equal(await page.$$eval('[data-proof-hit]',xs=>xs.length),4,'Registered print needs four physical proof regions');
@@ -665,6 +669,28 @@ assert.equal(invalidSingleEval.length,0,
     'Individual proof did not override the contact exposure');
   assert(await page.$$eval('.source-proof:not([data-source-part="mirror"])',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)<.02)),
     'Individual proof failed to suppress the other contact ghosts');
+  assert(await page.$eval('#verso-entry',e=>e.classList.contains('available')),
+    'Completed contact history did not unlock the physical verso axis');
+  assert.equal(await page.$eval('#verso-entry',e=>e.tabIndex),0,'Unlocked verso axis is missing from keyboard focus');
+  assert.equal(await page.$eval('#verso-entry',e=>e.getAttribute('href')),'./verso.html','Verso axis points to the wrong back side');
+  const versoBox=await page.$eval('#verso-entry .verso-hit',e=>{const r=e.getBoundingClientRect();return [r.width,r.height]});
+  assert(versoBox[0]>=40&&versoBox[1]>=40,'Verso flip target is too small: '+JSON.stringify(versoBox));
+  await page.click('#verso-entry');
+  await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('.hot.play',xs=>xs.length),5,'Profile verso must preserve five selected-play regions');
+  assert.equal(await page.$$eval('.hot.collab',xs=>xs.length),13,'Profile verso must preserve thirteen shared-frame regions');
+  assert.deepEqual(await page.$$eval('.hot.play',xs=>xs.map(x=>x.getAttribute('href'))),
+    ['https://ibb.co/zHbXDsLT','https://ibb.co/9kgtKmbc','https://ibb.co/4RVSjS2f','https://ibb.co/zVJNVxQj','https://ibb.co/pjydc5dc'],
+    'Profile verso play links drifted from the public profile');
+  assert.deepEqual(await page.$$eval('.hot.collab',xs=>xs.map(x=>x.getAttribute('href'))),
+    ['https://osu.ppy.sh/users/25520572','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/36372669','https://osu.ppy.sh/users/16178831','https://osu.ppy.sh/users/34523998','https://osu.ppy.sh/users/26795413','https://osu.ppy.sh/users/27235859','https://osu.ppy.sh/users/16233573','https://osu.ppy.sh/users/33005235','https://osu.ppy.sh/users/32910954','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/32358269','https://osu.ppy.sh/users/34278014'],
+    'Profile verso collaborator links drifted from the public profile');
+  assert.equal(await page.$eval('.verso-register',e=>e.getAttribute('href')),'./impression.html#verso','Verso registration axis does not flip back to the print');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Profile verso overflows horizontally');
+  await page.click('.verso-register');
+  await page.waitForFunction(()=>location.pathname.endsWith('/impression.html'),{timeout:5000});
+  assert(await page.$eval('#plate',e=>e.classList.contains('solved')&&e.classList.contains('contact-complete')),
+    'Returning from profile verso lost the registered/contacted print');
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);

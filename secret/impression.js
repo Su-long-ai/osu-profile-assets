@@ -7,6 +7,7 @@
   const plate=document.querySelector('#plate'),art=document.querySelector('#impression-art');
   const stage=document.querySelector('.impression-stage'), actions=document.querySelector('#impression-actions');
   const status=document.querySelector('#impression-status'),download=document.querySelector('#impression-download');
+  const versoEntry=document.querySelector('#verso-entry');
   const fixed=document.querySelector('#print-layer'),turn=document.querySelector('#turn-layer'),pins=document.querySelector('#fixed-pins');
   const proofs=document.querySelector('#source-proofs'),hits=document.querySelector('#source-hits'),pinHits=document.querySelector('#pin-hits');
   const pt=[[100,93],[316,136],[89,275],[272,333]];
@@ -54,7 +55,14 @@
   function renderContacts(){
     const ids=contactIds();
     for(const p of parts)plate.classList.toggle('contact-'+p.id,ids.includes(p.id));
-    plate.classList.toggle('contact-complete',ids.length===parts.length);
+    const contactComplete=ids.length===parts.length;
+    plate.classList.toggle('contact-complete',contactComplete);
+    const versoAvailable=solved&&contactComplete;
+    versoEntry.classList.toggle('available',versoAvailable);
+    versoEntry.tabIndex=versoAvailable?0:-1;
+    versoEntry.setAttribute('aria-hidden',String(!versoAvailable));
+    if(versoAvailable)versoEntry.setAttribute('href','./verso.html');
+    else versoEntry.removeAttribute('href');
   }
   function showProof(id){
     if(solved&&id)plate.dataset.proof=id;
