@@ -335,9 +335,15 @@ assert.equal(invalidSingleEval.length,0,
   // The four source rooms physically leave the same pieces used in assembly.
   for(const room of ['signal.html','chronicle.html','orbit.html','sealed.html']){
     await open(room);
+    assert.equal(await page.$$eval('link[href*="registration-residue.css?v=1"]',xs=>xs.length),1,
+      'Historical registration stylesheet missing: '+room);
     assert.equal(await page.$$eval('.fragment-stamp:not([hidden]) .fragment-art',e=>e.length),1,
       'Solved room lost the actual wing fragment: '+room);
     assert.equal(await page.$eval('.fragment-stamp',el=>el.tagName),'A','Wing should be a semantic return link');
+    assert(!(await page.$eval('.fragment-stamp',el=>el.classList.contains('registered'))),
+      'Registration residue leaked into the first-play room: '+room);
+    assert((await page.$eval('.fragment-hairline',e=>e.getBoundingClientRect().width))>=28,
+      'First-play fragment hairline was replaced before assembly history: '+room);
     await page.tap('.fragment-stamp:not([hidden])');
     await page.waitForFunction(()=>location.pathname.endsWith('/secret/'));
     await page.waitForSelector('.completion-seal.ready');
@@ -522,6 +528,26 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
     'Reprint left source proofs interactive');
   assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Reprint left a stale source proof visible');
+
+  // After historical assembly, revisiting each solved archive carries the exact impression registration signature.
+  for(const [room,part] of [['signal.html','keys'],['chronicle.html','dates'],['orbit.html','mirror'],['sealed.html','margin']]){
+    await open(room);
+    assert(await page.$eval('.fragment-stamp',e=>e.classList.contains('registered')),
+      'Joined archive lost its registration residue: '+room);
+    assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.fragment),part,
+      'Registration residue attached to the wrong fragment: '+room);
+    const reg=await page.$eval('.fragment-hairline',e=>{
+      const r=e.getBoundingClientRect(),s=getComputedStyle(e),b=getComputedStyle(e,'::before'),a=getComputedStyle(e,'::after');
+      return {w:r.width,h:r.height,border:s.borderTopWidth,bw:b.width,bh:b.height,bs:b.boxShadow,aw:a.width,ah:a.height,as:a.boxShadow};
+    });
+    assert(reg.w>=11&&reg.w<=13&&reg.h>=11&&reg.h<=13,'Archive registration ring changed size: '+room+' '+JSON.stringify(reg));
+    assert(reg.border!=='0px'&&Number.parseFloat(reg.bw)>=2.5&&Number.parseFloat(reg.ah)>=2.5,
+      'Archive registration ticks lost the impression geometry: '+room+' '+JSON.stringify(reg));
+    assert.notEqual(reg.bs,'none','Horizontal registration mate lost its outer tick: '+room);
+    assert.notEqual(reg.as,'none','Vertical registration mate lost its outer tick: '+room);
+    assert.equal(await page.$$eval('.registration-residue,[data-registration-control]',xs=>xs.length),0,
+      'Historical registration mark introduced a new UI control: '+room);
+  }
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
