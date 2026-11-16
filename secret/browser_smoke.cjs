@@ -644,10 +644,18 @@ assert.equal(invalidSingleEval.length,0,
   for(let i=0;i<13;i++)await page.keyboard.press('ArrowLeft');
   assert(await page.$eval('#plate',e=>e.classList.contains('solved')&&e.classList.contains('contact-complete')),
     'Re-registering the contacted print did not restore the complete exposure');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.source-proof')].every(x=>{
+    const o=Number(getComputedStyle(x).opacity);return o>=.04&&o<=.09;
+  }),{timeout:1400});
   assert(await page.$$eval('.source-proof',xs=>xs.every(x=>{
     const o=Number(getComputedStyle(x).opacity);return o>=.04&&o<=.09;
   })),'Completed contact exposure is not the intended quiet all-source ghost');
   await page.$eval('[data-proof-hit="mirror"]',e=>e.focus());
+  await page.waitForFunction(()=>{
+    const own=document.querySelector('[data-source-part="mirror"]');
+    const others=[...document.querySelectorAll('.source-proof:not([data-source-part="mirror"])')];
+    return own&&Number(getComputedStyle(own).opacity)>.12&&others.every(x=>Number(getComputedStyle(x).opacity)<.02);
+  },{timeout:1400});
   assert(Number(await page.$eval('[data-source-part="mirror"]',e=>getComputedStyle(e).opacity))>.12,
     'Individual proof did not override the contact exposure');
   assert(await page.$$eval('.source-proof:not([data-source-part="mirror"])',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)<.02)),
