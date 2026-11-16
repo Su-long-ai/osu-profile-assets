@@ -503,6 +503,7 @@ assert.equal(invalidSingleEval.length,0,
     'Solved print must expose four source-proof regions');
   await page.$eval('[data-proof-hit="keys"]',e=>e.focus());
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Focused wing did not reveal its source');
+  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('[data-source-part="keys"]')).opacity)>.12,{timeout:1500});
   assert(Number(await page.$eval('[data-source-part="keys"]',e=>getComputedStyle(e).opacity))>.12,
     'Focused key wing source never appeared');
   assert(await page.$$eval('.source-proof:not([data-source-part="keys"])',xs=>xs.every(e=>Number(getComputedStyle(e).opacity)<.03)),
