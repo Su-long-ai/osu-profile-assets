@@ -510,7 +510,7 @@ assert.equal(invalidSingleEval.length,0,
     'One source proof revealed the other wings');
   assert.equal(await page.$eval('[data-proof-hit="keys"]',e=>getComputedStyle(e).outlineStyle),'none',
     'Source-proof keyboard focus drew a UI rectangle');
-  await page.$eval('[data-proof-hit="keys"]',e=>e.click());
+  await page.keyboard.press('Enter');
   await page.focus('#impression-edition');
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Pinned source proof did not survive focus movement');
   await page.$eval('[data-proof-hit="keys"]',e=>e.focus());

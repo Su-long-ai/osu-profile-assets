@@ -118,6 +118,12 @@
     if(delta!==undefined){e.preventDefault();change(angle+delta)}
     else if(e.key==='PageUp'||e.key==='PageDown'){e.preventDefault();change(angle+(e.key==='PageUp'?30:-30))}
   });
+  function activateProof(id){
+    if(!solved)return;
+    pinnedProof=pinnedProof===id?null:id;
+    showProof(pinnedProof);
+    status.textContent=pinnedProof?'主页来源已显影':'主页来源显影已收起';
+  }
   for(const hit of proofHits){
     const id=hit.dataset.proofHit;
     hit.addEventListener('mouseenter',()=>{if(solved)showProof(id)});
@@ -127,13 +133,11 @@
     hit.addEventListener('click',event=>{
       if(!solved)return;
       event.preventDefault();event.stopPropagation();
-      pinnedProof=pinnedProof===id?null:id;
-      showProof(pinnedProof);
-      status.textContent=pinnedProof?'主页来源已显影':'主页来源显影已收起';
+      activateProof(id);
     });
     hit.addEventListener('keydown',event=>{
       if(!solved)return;
-      if(event.key==='Enter'||event.key===' '){event.preventDefault();hit.click()}
+      if(event.key==='Enter'||event.key===' '){event.preventDefault();activateProof(id)}
       else if(event.key==='Escape'){event.preventDefault();pinnedProof=null;showProof(null)}
     });
   }
