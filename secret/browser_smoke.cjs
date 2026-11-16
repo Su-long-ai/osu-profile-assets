@@ -3,6 +3,13 @@ const puppeteer=require('puppeteer-core');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const sourceLines=fs.readFileSync(__filename,'utf8').split(/\r?\n/);
+const arrayEvalTokens=['xs=>','e=>e.length','e=>e.every','e=>e.map','e=>e.filter'];
+const invalidSingleEval=sourceLines
+  .map((line,i)=>({line,n:i+1}))
+  .filter(x=>x.line.includes('page.'+'$eval(')&&arrayEvalTokens.some(t=>x.line.includes(t)));
+assert.equal(invalidSingleEval.length,0,
+  'browser_smoke contains single-element $eval with an array callback: '+JSON.stringify(invalidSingleEval));
 (async()=>{
  const folder='/tmp/archive036-screens';
  fs.mkdirSync(folder,{recursive:true});
@@ -478,27 +485,27 @@ const path=require('node:path');
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$eval('link[href*="impression-source.css?v=1"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('link[href*="impression-source.css?v=1"]',xs=>xs.length),1,
     'Impression source-proof stylesheet missing');
-  assert.equal(await page.$eval('.source-proof',xs=>xs.length),4,'Registered print needs four source-proof layers');
-  assert.equal(await page.$eval('[data-proof-hit]',xs=>xs.length),4,'Registered print needs four physical proof regions');
-  assert.equal(await page.$eval('[data-pin-part]',xs=>xs.length),4,'Registered print needs four source registration pins');
+  assert.equal(await page.$$eval('.source-proof',xs=>xs.length),4,'Registered print needs four source-proof layers');
+  assert.equal(await page.$$eval('[data-proof-hit]',xs=>xs.length),4,'Registered print needs four physical proof regions');
+  assert.equal(await page.$$eval('[data-pin-part]',xs=>xs.length),4,'Registered print needs four source registration pins');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Fresh impression must remain a rotation slider');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Fresh impression slider left the focus order');
-  assert.equal(await page.$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+  assert.equal(await page.$$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
     'Source proofs must not become interactive before registration');
   await page.focus('#plate');
   for(let i=0;i<13;i++)await page.keyboard.press('ArrowLeft');
   assert(await page.$eval('#plate',e=>e.classList.contains('solved')),'Keyboard registration did not complete the print');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'group','Solved print must retire slider semantics');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),-1,'Solved print slider stayed in the focus order');
-  assert.equal(await page.$eval('[data-proof-hit][tabindex="0"][aria-disabled="false"]',xs=>xs.length),4,
+  assert.equal(await page.$$eval('[data-proof-hit][tabindex="0"][aria-disabled="false"]',xs=>xs.length),4,
     'Solved print must expose four source-proof regions');
   await page.focus('[data-proof-hit="keys"]');
   assert.equal(await page.$eval('#plate',e=>e.dataset.proof),'keys','Focused wing did not reveal its source');
   assert(Number(await page.$eval('[data-source-part="keys"]',e=>getComputedStyle(e).opacity))>.12,
     'Focused key wing source never appeared');
-  assert(await page.$eval('.source-proof:not([data-source-part="keys"])',xs=>xs.every(e=>Number(getComputedStyle(e).opacity)<.03)),
+  assert(await page.$$eval('.source-proof:not([data-source-part="keys"])',xs=>xs.every(e=>Number(getComputedStyle(e).opacity)<.03)),
     'One source proof revealed the other wings');
   assert.equal(await page.$eval('[data-proof-hit="keys"]',e=>getComputedStyle(e).outlineStyle),'none',
     'Source-proof keyboard focus drew a UI rectangle');
@@ -511,7 +518,7 @@ const path=require('node:path');
   await page.click('#reprint');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Reprint did not restore slider semantics');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Reprint did not restore slider focus');
-  assert.equal(await page.$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
+  assert.equal(await page.$$eval('[data-proof-hit][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,
     'Reprint left source proofs interactive');
   assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Reprint left a stale source proof visible');
 
