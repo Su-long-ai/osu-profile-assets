@@ -695,6 +695,13 @@ assert.equal(invalidSingleEval.length,0,
     'Profile-verso metrics cache version is stale');
   assert.equal(await page.$$eval('.hot.play',xs=>xs.length),5,'Profile verso must preserve five selected-play regions');
   assert.equal(await page.$$eval('.hot.collab',xs=>xs.length),13,'Profile verso must preserve thirteen shared-frame regions');
+  const versoSources=await page.$$eval('.verso-panel image',xs=>xs.map(x=>x.getAttribute('href')||''));
+  assert.equal(versoSources.filter(x=>x.includes('036js-v42-selected-plays-body.jpg')).length,6,
+    'Profile verso selected-play layers drifted from the v42 public-profile source');
+  assert.equal(versoSources.filter(x=>x.includes('036js-v42-shared-frames-body.jpg')).length,14,
+    'Profile verso shared-frame layers drifted from the v42 public-profile source');
+  assert(versoSources.every(x=>!x.includes('036js-v27-selected-plays-body.jpg')&&!x.includes('036js-v27-shared-frames-body.jpg')),
+    'Profile verso still contains a stale v27 profile source');
   assert.deepEqual(await page.$$eval('.hot.play',xs=>xs.map(x=>x.getAttribute('href'))),
     ['https://ibb.co/zHbXDsLT','https://ibb.co/9kgtKmbc','https://ibb.co/4RVSjS2f','https://ibb.co/zVJNVxQj','https://ibb.co/pjydc5dc'],
     'Profile verso play links drifted from the public profile');
