@@ -514,7 +514,7 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('script[src*="impression.js?v=5"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="impression.js?v=6"]',xs=>xs.length),1,
     'Impression contact-history initializer is stale');
   assert.equal(await page.$$eval('link[href*="impression-source.css?v=2"]',xs=>xs.length),1,
     'Impression source-proof stylesheet missing');
