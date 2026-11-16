@@ -4,8 +4,11 @@
   const id=parts[room];
   if(!id)return;
   function markContact(){
-    if(localStorage.getItem('nb036-misc-v4:joined')==='1'&&location.hash==='#registered')
+    if(localStorage.getItem('nb036-misc-v4:joined')==='1'&&location.hash==='#registered'){
       localStorage.setItem('nb036-impression-v3:contact:'+id,'1');
+      const allContacts=Object.values(parts).every(part=>localStorage.getItem('nb036-impression-v3:contact:'+part)==='1');
+      if(allContacts)void window.nightButterflyMetrics?.record('misc-contact').catch(()=>{});
+    }
   }
   markContact();
   addEventListener('hashchange',()=>{markContact();refresh()});

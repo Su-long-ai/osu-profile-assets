@@ -94,6 +94,10 @@ assert.equal(invalidSingleEval.length,0,
   await wordless();
   await shot('index-mobile.png');
   await open('signal.html');
+  assert.equal(await page.$$eval('script[src*="registration-residue.js?v=5"]',xs=>xs.length),1,
+    'Archive-contact client cache version is stale');
+  assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
+    'Act-two metrics allowlist cache version is stale in archive room');
   assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),7);
   assert.equal(await page.$$eval('.hold-note[role="button"][tabindex="0"]',xs=>xs.length),7,'The visible long notes must be real accessible controls');
   assert.equal(await page.$$eval('[data-lane]',xs=>xs.length),7);
@@ -311,12 +315,18 @@ assert.equal(invalidSingleEval.length,0,
   await open('stats.html');
   await wordless();
   assert.equal(await page.$$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
+  assert.equal(await page.$$eval('.stats-act-two .stats-row [id^="misc-"]',e=>e.length),3,
+    'Stats funnel needs impression, contact, and verso stages');
+  assert.deepEqual(await page.$$eval('.stats-act-two output',xs=>xs.map(x=>x.id)),
+    ['misc-impression','misc-contact','misc-verso'],'Stats act-two stages drifted');
+  assert.equal(await page.$$eval('link[href*="stats-funnel.css?v=1"]',xs=>xs.length),1,'Stats funnel stylesheet missing');
+  assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,'Stats metrics cache version is stale');
   assert.equal(await page.$$eval('.stats-spoke',xs=>xs.length),4,'Stats map needs four parallel source spokes');
   assert.equal(await page.$$eval('.stats-tip',xs=>xs.length),4,'Stats map needs four source tips');
   assert.equal(await page.$$eval('.stats-assembly-ring',xs=>xs.length),1,'Stats map needs one assembly hub');
   assert.equal(await page.$$eval('.stats-history output',e=>e.length),11);
-  await page.waitForFunction(()=>[...document.querySelectorAll('.stats-scene > .stats-row output')].every(e=>e.textContent==='—'),{timeout:12000});
-  assert(await page.$$eval('.stats-scene > .stats-row output',xs=>xs.every(x=>x.getAttribute('aria-label').includes('不代表零次'))),'Failed reads must not imply zero or distinct people');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.stats-scene > .stats-row output,.stats-act-two output')].every(e=>e.textContent==='—'),{timeout:12000});
+  assert(await page.$$eval('.stats-scene > .stats-row output,.stats-act-two output',xs=>xs.every(x=>x.getAttribute('aria-label').includes('不代表零次'))),'Failed reads must not imply zero or distinct people');
   await shot('stats-mobile.png');
 
   await open();
@@ -514,8 +524,10 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('script[src*="impression.js?v=6"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="impression.js?v=7"]',xs=>xs.length),1,
     'Impression contact-history initializer is stale');
+  assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
+    'Impression metrics cache version is stale');
   assert.equal(await page.$$eval('link[href*="impression-source.css?v=2"]',xs=>xs.length),1,
     'Impression source-proof stylesheet missing');
   assert.equal(await page.$$eval('link[href*="registered-graph.css?v=2"]',xs=>xs.length),1,
@@ -677,6 +689,10 @@ assert.equal(invalidSingleEval.length,0,
   assert(versoBox[0]>=40&&versoBox[1]>=40,'Verso flip target is too small: '+JSON.stringify(versoBox));
   await page.click('#verso-entry');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('script[src*="verso.js?v=2"]',xs=>xs.length),1,
+    'Profile-verso client cache version is stale');
+  assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
+    'Profile-verso metrics cache version is stale');
   assert.equal(await page.$$eval('.hot.play',xs=>xs.length),5,'Profile verso must preserve five selected-play regions');
   assert.equal(await page.$$eval('.hot.collab',xs=>xs.length),13,'Profile verso must preserve thirteen shared-frame regions');
   assert.deepEqual(await page.$$eval('.hot.play',xs=>xs.map(x=>x.getAttribute('href'))),
@@ -808,6 +824,46 @@ assert.equal(invalidSingleEval.length,0,
     }
   });
   assert(analytics.deduplicated && analytics.ownerExcluded,'Analytics owner / repeat gate failed: '+JSON.stringify(analytics));
+
+  const actTwoAnalytics=await page.evaluate(async()=>{
+    const stages=['misc-impression','misc-contact','misc-verso'];
+    const owner='nb036-analytics-v1:owner',backoff='nb036-analytics-v1:service-retry-after';
+    const oldFetch=window.fetch,beforeOwner=localStorage.getItem(owner),beforeBackoff=localStorage.getItem(backoff);
+    const calls=Object.fromEntries(stages.map(stage=>[stage,0]));
+    const beforeCounted=Object.fromEntries(stages.map(stage=>[stage,localStorage.getItem('nb036-analytics-v1:counted:'+stage)]));
+    localStorage.removeItem(owner);localStorage.removeItem(backoff);
+    for(const stage of stages)localStorage.removeItem('nb036-analytics-v1:counted:'+stage);
+    window.fetch=async(url,...opts)=>{
+      const text=String(url);
+      for(const stage of stages)if(text.includes(stage.replaceAll('-','_'))){
+        calls[stage]++;return {ok:true,json:async()=>({value:1})};
+      }
+      return oldFetch(url,...opts);
+    };
+    try{
+      for(const stage of stages){
+        await Promise.all([nightButterflyMetrics.record(stage),nightButterflyMetrics.record(stage)]);
+        await nightButterflyMetrics.record(stage);
+        if(calls[stage]!==1||localStorage.getItem('nb036-analytics-v1:counted:'+stage)!=='1')
+          return {ok:false,phase:'dedupe',stage,calls};
+      }
+      const snapshot=JSON.stringify(calls);
+      localStorage.setItem(owner,'1');
+      for(const stage of stages)localStorage.removeItem('nb036-analytics-v1:counted:'+stage);
+      for(const stage of stages)await nightButterflyMetrics.record(stage);
+      return {ok:JSON.stringify(calls)===snapshot,calls,owner:localStorage.getItem(owner)};
+    }finally{
+      window.fetch=oldFetch;
+      if(beforeOwner===null)localStorage.removeItem(owner);else localStorage.setItem(owner,beforeOwner);
+      if(beforeBackoff===null)localStorage.removeItem(backoff);else localStorage.setItem(backoff,beforeBackoff);
+      for(const stage of stages){
+        const old=beforeCounted[stage];
+        if(old===null)localStorage.removeItem('nb036-analytics-v1:counted:'+stage);
+        else localStorage.setItem('nb036-analytics-v1:counted:'+stage,old);
+      }
+    }
+  });
+  assert(actTwoAnalytics.ok,'Act-two analytics allowlist/dedupe/owner exclusion failed: '+JSON.stringify(actTwoAnalytics));
 
   assert.equal(errors.length,0,'Browser JS errors: '+errors.join('; '));
   console.log('PASS silent site: no visible words, real 22-week timeline, seven-star symmetry, physical ink correction, four-wing assembly, archived original, mobile+desktop, stats exclusion');

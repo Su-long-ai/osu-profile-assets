@@ -122,6 +122,7 @@
   function complete(){
     angle=0;solved=true;drag=null;
     localStorage.setItem(state,'1');
+    void window.nightButterflyMetrics?.record('misc-impression').catch(()=>{});
     plate.classList.add('solved');actions.hidden=false;
     plate.removeAttribute('aria-disabled');
     plate.setAttribute('role','group');plate.tabIndex=-1;
