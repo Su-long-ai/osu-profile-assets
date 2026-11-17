@@ -784,12 +784,23 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('link[href*="folio.css?v=1"]',xs=>xs.length),1,'Gatefold folio stylesheet missing');
   assert.equal(await page.$$eval('script[src*="folio.js?v=3"]',xs=>xs.length),1,'Gatefold folio route-comparison client revision missing');
   assert.equal(await page.$$eval('.folio-panel',xs=>xs.length),3,'Gatefold folio needs exactly two flaps and one recto panel');
-  assert.equal(await page.$$eval('.folio-route-signature.room-route path',xs=>xs.length),4,'Gatefold first-act route comparison needs four ticks');
-  assert.equal(await page.$$eval('.folio-route-signature.contact-route path',xs=>xs.length),4,'Gatefold second-act route comparison needs four ticks');
-  assert.deepEqual(await page.$$eval('.folio-route-signature.room-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
-    ['#b7adcb','#9cc4c9','#bba8c9','#a6c7ce'],'Gatefold first-act route colors drifted from local solve order');
-  assert.deepEqual(await page.$$eval('.folio-route-signature.contact-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
-    ['#a6c7ce','#bba8c9','#9cc4c9','#b7adcb'],'Gatefold second-act route colors drifted from local contact order');
+  assert.equal(await page.$eval('.folio-route-signature.room-route path',xs=>xs.length),4,'Gatefold first-act route comparison needs four ticks');
+  assert.equal(await page.$eval('.folio-route-signature.contact-route path',xs=>xs.length),4,'Gatefold second-act route comparison needs four ticks');
+  const routeColorById={keys:'#9cc4c9',dates:'#b7adcb',mirror:'#a6c7ce',margin:'#bba8c9'};
+  const currentRouteOrders=await page.evaluate(()=>({
+    rooms:JSON.parse(localStorage.getItem('nb036-route-v1:rooms')||'[]'),
+    contacts:JSON.parse(localStorage.getItem('nb036-route-v1:contacts')||'[]')
+  }));
+  assert.equal(currentRouteOrders.rooms.length,4,'Browser smoke did not preserve a complete first-act route before opening the folio');
+  assert.equal(currentRouteOrders.contacts.length,4,'Browser smoke did not preserve a complete second-act route before opening the folio');
+  const expectedRoomRouteColors=currentRouteOrders.rooms.map(x=>routeColorById[x]);
+  const expectedContactRouteColors=currentRouteOrders.contacts.map(x=>routeColorById[x]);
+  assert(expectedRoomRouteColors.every(Boolean)&&expectedContactRouteColors.every(Boolean),
+    'Browser smoke route history contains an unknown fragment: '+JSON.stringify(currentRouteOrders));
+  assert.deepEqual(await page.$eval('.folio-route-signature.room-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
+    expectedRoomRouteColors,'Gatefold first-act route colors drifted from the browser\'s actual local solve order');
+  assert.deepEqual(await page.$eval('.folio-route-signature.contact-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
+    expectedContactRouteColors,'Gatefold second-act route colors drifted from the browser\'s actual local contact order');
   assert.equal(await page.$$eval('#folio-download',xs=>xs.length),1,'Gatefold folio physical export control missing');
   assert.equal(await page.$eval('#folio-download',e=>e.tabIndex),-1,'Gatefold export entered focus order before the folio was folded');
   assert.equal(await page.$eval('#folio-download',e=>e.getAttribute('aria-hidden')),'true','Gatefold export exposed itself before the fold');
@@ -824,10 +835,9 @@ assert.equal(invalidSingleEval.length,0,
     'M204 78h4','M204 88h4','M204 98h4','M204 108h4',
     'M608 78h4','M608 88h4','M608 98h4','M608 108h4'
   ],'Gatefold route ticks left their two fold-edge ordinal columns');
-  assert.deepEqual(gatefoldRoute.map(x=>x.stroke),[
-    '#b7adcb','#9cc4c9','#bba8c9','#a6c7ce',
-    '#a6c7ce','#bba8c9','#9cc4c9','#b7adcb'
-  ],'Gatefold route-comparison export drifted from the two local route orders');
+  assert.deepEqual(gatefoldRoute.map(x=>x.stroke),
+    expectedRoomRouteColors.concat(expectedContactRouteColors),
+    'Gatefold route-comparison export drifted from the browser\'s two actual local route orders');
   assert(gatefoldExport.includes('M208 4v14M204 11h8M608 4v14M604 11h8')&&gatefoldExport.includes('M208 382v14M204 389h8M608 382v14M604 389h8'),
     'Gatefold fold marks moved away from x=208/x=608');
   assert(!gatefoldExport.includes('<image')&&!gatefoldExport.includes('https://')&&!gatefoldExport.includes('source-memory'),
