@@ -362,7 +362,7 @@ assert.equal(invalidSingleEval.length,0,
   // The four source rooms physically leave the same pieces used in assembly.
   for(const room of ['signal.html','chronicle.html','orbit.html','sealed.html']){
     await open(room);
-    assert.equal(await page.$$eval('link[href*="registration-residue.css?v=1"]',xs=>xs.length),1,
+    assert.equal(await page.$$eval('link[href*="registration-residue.css?v="]',xs=>xs.length),1,
       'Historical registration stylesheet missing: '+room);
     assert.equal(await page.$$eval('link[href*="registered-graph.css?v=2"]',xs=>xs.length),1,
       'Registered archive graph stylesheet missing: '+room);
@@ -798,6 +798,15 @@ assert.equal(invalidSingleEval.length,0,
     'Transmitted back-side origins no longer register onto the recto pins');
   assert.deepEqual(transmitted.axis,[200,200],
     'Transmitted back-side axis no longer registers onto the recto center');
+  // Explicitly model a legacy finisher: all visible progress exists, but no
+  // first-discovery/contact order was recorded before v84 introduced it.
+  await page.evaluate(()=>{
+    localStorage.removeItem('nb036-route-v1:rooms');
+    localStorage.removeItem('nb036-route-v1:contacts');
+  });
+  // Rebuild the object URL without changing the final night edition.
+  await page.click('#impression-edition');
+  await page.click('#impression-edition');
   const duplexName=await page.$eval('#impression-download',a=>a.download);
   const duplexExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
   assert.equal(duplexName,'036js-night-duplex-impression.svg','Seen verso did not upgrade the physical print download');
