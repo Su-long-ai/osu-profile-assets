@@ -1,0 +1,23 @@
+(()=>{'use strict';
+const ids=['keys','dates','mirror','margin'],accepted=new Set(ids);
+const routeOrder=key=>{try{const x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)&&x.length===4&&new Set(x).size===4&&x.every(v=>accepted.has(v))?x:[]}catch{return []}};
+const eligible=localStorage.getItem('nb036-misc-v4:joined')==='1'&&localStorage.getItem('nb036-verso-v1:seen')==='1'&&routeOrder('nb036-route-v1:rooms').length===4&&routeOrder('nb036-route-v1:contacts').length===4;
+if(!eligible||!window.NBFragments?.parts||!window.NBDuplexBack?.svg){location.replace('./verso.html');return}
+const parts=window.NBFragments.parts,pt=[[100,93],[316,136],[89,275],[272,333]];
+const layout=parts.map((p,i)=>({p,x:i%2?202:81,y:i<2?99:197}));
+const groups=fn=>layout.map(o=>'<g transform="translate('+o.x+' '+o.y+') scale(.85)">'+fn(o.p)+'</g>').join('');
+const outlines=groups(p=>'<path d="'+p.contour+'" stroke="'+p.color+'" stroke-width="1.15" fill="none"/>');
+const veins=groups(p=>'<g stroke="'+p.color+'" stroke-width=".8" fill="none" stroke-linecap="round" stroke-linejoin="round">'+p.veins+'</g>');
+const grain=groups(p=>'<g stroke="'+p.color+'" fill="none"><path d="'+p.contour+'" fill="'+p.color+'" fill-opacity=".055" stroke="none"/></g>');
+const body='<path d="M200 185V231M200 193Q193 177 186 172M200 193Q207 177 214 172" stroke="#b4c8ce" stroke-width=".75" fill="none" stroke-linecap="round"/>';
+const pins='<g class="export-registration-pins" opacity=".62">'+pt.map(([x,y],i)=>'<g stroke="'+parts[i].color+'" fill="none"><circle cx="'+x+'" cy="'+y+'" r="5.8" stroke-width=".9"/><path d="M'+(x-10)+' '+y+'h3m14 0h3M'+x+' '+(y-10)+'v3m0 14v3" stroke-width=".65" opacity=".6"/></g>').join('')+'</g>';
+const front='<rect width="400" height="400" fill="#121820"/><g stroke="#536b79" stroke-width=".75" fill="none"><path d="M42 60V42H60M340 42H358V60M358 340V358H340M60 358H42V340"/></g>'+grain+outlines+veins+body+pins;
+const paperInk={'#9cc4c9':'#386770','#a6c7ce':'#416773','#b7adcb':'#665577','#bba8c9':'#75556e','#beaace':'#846674','#a8cbd1':'#386770','#b4c8ce':'#59696a','#9ebdc8':'#53727a','#b7ccd2':'#586c70','#536b79':'#84918d','#121820':'#e6e2d7','#0d131a':'#ded9cc'};
+const recolor=source=>localStorage.getItem('nb036-impression-v2:edition')==='paper'?source.replace(/#[0-9a-f]{6}/gi,x=>paperInk[x.toLowerCase()]||x):source;
+document.querySelector('#folio-left').innerHTML=recolor(window.NBDuplexBack.svg);
+document.querySelector('#folio-center').innerHTML=recolor(front);
+document.querySelector('#folio-right').innerHTML=recolor(window.NBDuplexBack.svg);
+const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge');
+hinge.addEventListener('click',()=>{const on=folio.classList.toggle('folded');hinge.setAttribute('aria-pressed',String(on))});
+document.querySelector('.folio-stage').hidden=false;
+})();

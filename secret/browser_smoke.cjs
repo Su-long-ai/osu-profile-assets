@@ -746,13 +746,14 @@ assert.equal(invalidSingleEval.length,0,
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="verso.css?v=2"]',xs=>xs.length),1,
     'Profile verso did not pick up the focus-cleanup stylesheet revision');
-  assert.equal(await page.$$eval('script[src*="verso.js?v=3"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="verso.js?v=4"]',xs=>xs.length),1,
     'Profile-verso client cache version is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Profile-verso metrics cache version is stale');
   assert.equal(await page.$$eval('.hot.play',xs=>xs.length),5,'Profile verso must preserve five selected-play regions');
   assert.equal(await page.$$eval('.hot.collab',xs=>xs.length),13,'Profile verso must preserve thirteen shared-frame regions');
   assert.equal(await page.$$eval('link[href*="verso-origin.css?v=1"]',xs=>xs.length),1,'Verso origin stylesheet missing');
+  assert.equal(await page.$$eval('link[href*="folio.css?v=1"]',xs=>xs.length),1,'Optional gatefold folio stylesheet missing from the verso');
   assert.equal(await page.$$eval('.verso-origin-mark',xs=>xs.length),2,'Verso needs exactly two profile-origin marks');
   assert.deepEqual(await page.$$eval('.verso-origin-mark circle',xs=>xs.map(x=>[Number(x.getAttribute('cx')),Number(x.getAttribute('cy')),Number(x.getAttribute('r'))])),
     [[850,1818,16],[846,1170,15]],'Verso profile-origin coordinates drifted from the v42 raster seeds');
@@ -773,11 +774,34 @@ assert.equal(invalidSingleEval.length,0,
   assert.deepEqual(await page.$$eval('.hot.collab',xs=>xs.map(x=>x.getAttribute('href'))),
     ['https://osu.ppy.sh/users/25520572','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/36372669','https://osu.ppy.sh/users/16178831','https://osu.ppy.sh/users/34523998','https://osu.ppy.sh/users/26795413','https://osu.ppy.sh/users/27235859','https://osu.ppy.sh/users/16233573','https://osu.ppy.sh/users/33005235','https://osu.ppy.sh/users/32910954','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/32358269','https://osu.ppy.sh/users/34278014'],
     'Profile verso collaborator links drifted from the public profile');
-  assert.equal(await page.$eval('.verso-register',e=>e.getAttribute('href')),'./impression.html#verso','Verso registration axis does not flip back to the print');
+  assert.equal(await page.$eval('.verso-register',e=>e.getAttribute('href')),'./folio.html','Complete route history did not upgrade the verso axis into the optional folio');
+  assert.equal(await page.$$eval('.verso-register.folio-available',xs=>xs.length),1,'Gatefold folio availability is not expressed on the existing registration axis');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-verso-v1:seen')),'1',
     'Viewing the unlocked profile verso did not persist the third-read history flag');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Profile verso overflows horizontally');
   await page.click('.verso-register');
+  await page.waitForFunction(()=>location.pathname.endsWith('/folio.html')&&!document.querySelector('.folio-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('link[href*="folio.css?v=1"]',xs=>xs.length),1,'Gatefold folio stylesheet missing');
+  assert.equal(await page.$$eval('script[src*="folio.js?v=1"]',xs=>xs.length),1,'Gatefold folio client missing');
+  assert.equal(await page.$$eval('.folio-panel',xs=>xs.length),3,'Gatefold folio needs exactly two flaps and one recto panel');
+  assert.deepEqual(await page.$$eval('#folio-left,#folio-center,#folio-right',xs=>xs.map(x=>x.getAttribute('viewBox'))),
+    ['192 0 208 400','0 0 400 400','0 0 192 400'],'Gatefold folio panel geometry drifted');
+  const folioWidths=await page.$eval('#folio',e=>{const r=e.getBoundingClientRect();return [...e.querySelectorAll('.folio-panel')].map(x=>x.getBoundingClientRect().width/r.width)});
+  assert(Math.abs(folioWidths[0]-.26)<.01&&Math.abs(folioWidths[1]-.5)<.01&&Math.abs(folioWidths[2]-.24)<.01,
+    'Gatefold folio no longer preserves the 208/400/192 physical split: '+JSON.stringify(folioWidths));
+  const folioHinge=await page.$eval('#folio-hinge',e=>{const r=e.getBoundingClientRect();return [r.width,r.height,e.getAttribute('aria-pressed')]});
+  assert(folioHinge[0]>=48&&folioHinge[1]>=48&&folioHinge[2]==='false','Gatefold hinge is too small or starts closed: '+JSON.stringify(folioHinge));
+  await page.click('#folio-hinge');
+  assert.equal(await page.$eval('#folio-hinge',e=>e.getAttribute('aria-pressed')),'true','Gatefold hinge did not close the folio');
+  assert.notEqual(await page.$eval('.folio-left',e=>getComputedStyle(e).transform),'none','Left gate did not fold');
+  assert.notEqual(await page.$eval('.folio-right',e=>getComputedStyle(e).transform),'none','Right gate did not fold');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Gatefold folio overflows horizontally');
+  await page.$eval('#folio-hinge',e=>e.focus());await page.keyboard.press('Enter');
+  assert.equal(await page.$eval('#folio-hinge',e=>e.getAttribute('aria-pressed')),'false','Gatefold hinge is not keyboard-reversible');
+  await page.click('.breadcrumb');
+  await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$eval('.verso-register',e=>e.getAttribute('href')),'./folio.html','Returning from the folio lost its optional route');
+  await page.click('.breadcrumb');
   await page.waitForFunction(()=>location.pathname.endsWith('/impression.html'),{timeout:5000});
   assert(await page.$eval('#plate',e=>e.classList.contains('solved')&&e.classList.contains('contact-complete')),
     'Returning from profile verso lost the registered/contacted print');
