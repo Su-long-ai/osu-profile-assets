@@ -894,6 +894,27 @@ assert.equal(invalidSingleEval.length,0,
   assert(echoedSeal.w>=80&&echoedSeal.h>=80&&echoedSeal.content!=='none'&&echoedSeal.opacity>=.5,
     'Third-read echo changed the seal geometry or failed to render: '+JSON.stringify(echoedSeal));
 
+  await open('signal.html');
+  assert.equal(await page.$$eval('link[href*="registration-residue.css?v=2"]',xs=>xs.length),1,
+    'Route-residue stylesheet revision is missing');
+  assert.equal(await page.$$eval('script[src*="registration-residue.js?v=7"]',xs=>xs.length),1,
+    'Route-residue client revision is missing');
+  assert.equal(await page.$$eval('.fragment-stamp.registered.route-memory',xs=>xs.length),1,
+    'Third-read archive did not retain its personal registration residue');
+  const routeResidue=await page.$$eval('.fragment-stamp .route-memory-mark',xs=>xs.map(x=>({
+    kind:x.classList.contains('route-room-mark')?'room':'contact',
+    ordinal:x.dataset.ordinal,hidden:x.getAttribute('aria-hidden'),pointer:getComputedStyle(x).pointerEvents
+  })));
+  assert.deepEqual(routeResidue,[
+    {kind:'room',ordinal:'2',hidden:'true',pointer:'none'},
+    {kind:'contact',ordinal:'3',hidden:'true',pointer:'none'}
+  ],'Archive route residue no longer reflects the two local solve orders');
+  assert.equal(await page.$eval('.fragment-stamp',e=>e.getAttribute('href')),'./impression.html#keys',
+    'Personal route residue changed archive navigation');
+  assert(!/序|第[一二三四1234]/.test(await page.$eval('.fragment-stamp',e=>e.getAttribute('aria-label')||'')),
+    'Personal route residue leaked ordinal text into accessibility copy');
+  await open();
+
   await open('stats.html');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=3"]',xs=>xs.length),1,'Stats metrics cache version is stale');
   assert.equal(await page.$$eval('.stats-artifact-branch #misc-duplex',xs=>xs.length),1,
