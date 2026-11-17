@@ -3,9 +3,20 @@
   const parts={signal:'keys',chronicle:'dates',orbit:'mirror',sealed:'margin'};
   const id=parts[room];
   if(!id)return;
+  const routeKey='nb036-route-v1:contacts';
+  const accepted=new Set(Object.values(parts));
+  function appendRoute(name){
+    let list=[];
+    try{const parsed=JSON.parse(localStorage.getItem(routeKey)||'[]');if(Array.isArray(parsed))list=parsed.filter(x=>accepted.has(x))}
+    catch{}
+    if(!list.includes(name)){list.push(name);localStorage.setItem(routeKey,JSON.stringify(list.slice(0,4)))}
+  }
   function markContact(){
     if(localStorage.getItem('nb036-misc-v4:joined')==='1'&&location.hash==='#registered'){
-      localStorage.setItem('nb036-impression-v3:contact:'+id,'1');
+      const contactKey='nb036-impression-v3:contact:'+id;
+      const first=localStorage.getItem(contactKey)!=='1';
+      localStorage.setItem(contactKey,'1');
+      if(first)appendRoute(id);
       const allContacts=Object.values(parts).every(part=>localStorage.getItem('nb036-impression-v3:contact:'+part)==='1');
       if(allContacts)void window.nightButterflyMetrics?.record('misc-contact').catch(()=>{});
     }

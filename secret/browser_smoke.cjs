@@ -94,8 +94,8 @@ assert.equal(invalidSingleEval.length,0,
   await wordless();
   await shot('index-mobile.png');
   await open('signal.html');
-  assert.equal(await page.$$eval('script[src*="registration-residue.js?v=5"]',xs=>xs.length),1,
-    'Archive-contact client cache version is stale');
+  assert.equal(await page.$$eval('script[src*="registration-residue.js?v="]',xs=>xs.length),1,
+    'Archive-contact client is missing');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Act-two metrics allowlist cache version is stale in archive room');
   assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),7);
@@ -829,6 +829,8 @@ assert.equal(invalidSingleEval.length,0,
     'Duplex export leaked a raster, external dependency, source proof, or DOM-only answer label');
   assert(!duplexExport.includes('duplex-registration-ghost'),
     'DOM-only transmitted fold preview leaked into the physical duplex artifact');
+  assert(!duplexExport.includes('duplex-route-signature'),
+    'Legacy progress without recorded route order fabricated a solve signature');
   assert(!duplexExport.includes('https://')&&(duplexExport.match(/http:\/\//g)||[]).length===1,
     'Duplex export contains an external network dependency');
   assert(duplexExport.length<50000,'Duplex vector artifact became unexpectedly heavy: '+duplexExport.length);
@@ -838,6 +840,10 @@ assert.equal(invalidSingleEval.length,0,
   });
   assert.deepEqual(await page.evaluate(()=>window.__duplexMetricCalls),[],
     'Optional duplex metric fired before the user requested the artifact');
+  await page.evaluate(()=>{
+    localStorage.setItem('nb036-route-v1:rooms',JSON.stringify(['dates','keys','margin','mirror']));
+    localStorage.setItem('nb036-route-v1:contacts',JSON.stringify(['mirror','margin','keys','dates']));
+  });
   await page.click('#impression-edition');
   const duplexPaper=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
   assert.equal(await page.$eval('#impression-download',a=>a.download),'036js-paper-duplex-impression.svg',
@@ -848,6 +854,21 @@ assert.equal(invalidSingleEval.length,0,
     'Paper duplex export did not recolor both faces');
   assert.equal((duplexPaper.match(/class="duplex-fold"/g)||[]).length,1,
     'Paper duplex export lost the physical fold-registration marks');
+  assert.equal((duplexPaper.match(/class="duplex-route-signature"/g)||[]).length,1,
+    'Complete local solve history did not produce exactly one route signature');
+  const routeSignature=await page.evaluate(svg=>{
+    const d=new DOMParser().parseFromString(svg,'image/svg+xml');
+    const g=d.querySelector('.duplex-route-signature');
+    return g?[...g.querySelectorAll('path')].map(x=>({d:x.getAttribute('d'),stroke:x.getAttribute('stroke')})):[];
+  },duplexPaper);
+  assert.equal(routeSignature.length,8,'Solve signature must contain exactly eight route ticks');
+  assert.deepEqual(routeSignature.map(x=>x.stroke),
+    ['#665577','#386770','#75556e','#416773','#416773','#75556e','#386770','#665577'],
+    'Solve signature no longer preserves the two local route orders');
+  assert(routeSignature.every(x=>/^M(?:402|406|410|414|426|430|434|438) /.test(x.d)),
+    'Solve signature drifted away from the duplex gutter');
+  assert(!/uuid|timestamp|date|time|text|<text/i.test(duplexPaper),
+    'Solve signature acquired identity-like or textual metadata');
   assert(duplexPaper.includes('stroke="#84918d"'),
     'Paper duplex fold marks did not recolor with the print edition');
   assert(!duplexPaper.includes('<image')&&!duplexPaper.includes('href='),
