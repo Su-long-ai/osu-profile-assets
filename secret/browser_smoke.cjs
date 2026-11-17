@@ -524,7 +524,7 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('script[src*="impression.js?v=8"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="impression.js?v=9"]',xs=>xs.length),1,
     'Impression contact-history initializer is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Impression metrics cache version is stale');
@@ -584,14 +584,29 @@ assert.equal(invalidSingleEval.length,0,
   await page.$eval('[data-proof-hit="keys"]',e=>e.focus());
   await page.keyboard.press('Escape');
   assert.equal(await page.$eval('#plate',e=>e.hasAttribute('data-proof')),false,'Escape did not dismiss the source proof');
+  const nightName=await page.$eval('#impression-download',a=>a.download);
   const nightExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
+  assert.equal(nightName,'036js-night-impression.svg','Third-read history leaked into the pre-verso export filename');
+  assert(nightExport.includes('viewBox="0 0 400 400"')&&!nightExport.includes('class="duplex-back"'),
+    'Pre-verso print must remain the single recto artifact');
+  assert.equal(await page.$$eval('script[src*="duplex-back.js?v=1"]',xs=>xs.length),1,'Duplex back template is missing');
+  const duplexThroughOrigins=await page.evaluate(()=>{
+    const d=new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg">'+window.NBDuplexBack.svg+'</svg>','image/svg+xml');
+    return [...d.querySelectorAll('.duplex-origin circle')].map(x=>[400-Number(x.getAttribute('cx')),Number(x.getAttribute('cy'))]);
+  });
+  assert(duplexThroughOrigins.length===2&&duplexThroughOrigins.every((p,i)=>p.every((v,j)=>Math.abs(v-[[89,275],[272,333]][i][j])<.01)),
+    'Duplex back origins no longer register through the paper onto the mirror/margin pins: '+JSON.stringify(duplexThroughOrigins));
   assert(nightExport.includes('class="export-registration-pins"'),'Downloaded night print lost its four registration marks');
   assert.equal((nightExport.match(/r="5\.8"/g)||[]).length,4,'Downloaded night print needs four registration rings');
   assert(!nightExport.includes('data-pin-part='),'Downloaded print leaked DOM-only part labels');
   assert(!nightExport.includes('<image')&&!nightExport.includes('source-memory')&&!nightExport.includes('transfer-core'),
     'Temporary source/contact state leaked into the downloadable artifact');
   await page.click('#impression-edition');
+  const paperName=await page.$eval('#impression-download',a=>a.download);
   const paperExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
+  assert.equal(paperName,'036js-paper-impression.svg','Pre-verso paper export unexpectedly became duplex');
+  assert(paperExport.includes('viewBox="0 0 400 400"')&&!paperExport.includes('class="duplex-back"'),
+    'Pre-verso paper print must remain single-sided');
   assert(paperExport.includes('class="export-registration-pins"'),'Downloaded paper print lost its four registration marks');
   assert.equal((paperExport.match(/r="5\.8"/g)||[]).length,4,'Downloaded paper print needs four registration rings');
   assert(paperExport.includes('#386770')&&paperExport.includes('#665577')&&paperExport.includes('#416773')&&paperExport.includes('#75556e'),
@@ -733,6 +748,27 @@ assert.equal(invalidSingleEval.length,0,
     'Third-read convergence cue returned after the profile verso had already been seen');
   assert(await page.$eval('#verso-entry',e=>e.classList.contains('available')),
     'Retiring the discovery cue accidentally removed the physical verso route');
+  const duplexName=await page.$eval('#impression-download',a=>a.download);
+  const duplexExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
+  assert.equal(duplexName,'036js-night-duplex-impression.svg','Seen verso did not upgrade the physical print download');
+  assert(duplexExport.includes('viewBox="0 0 840 400"')&&duplexExport.includes('class="duplex-front"')&&duplexExport.includes('class="duplex-back"'),
+    'Third-read export is not the expected self-contained duplex sheet');
+  assert.equal((duplexExport.match(/class="duplex-box"/g)||[]).length,18,'Duplex back must preserve all 5+13 public-profile regions');
+  assert.equal((duplexExport.match(/class="duplex-origin"/g)||[]).length,2,'Duplex back lost the two v42 origin marks');
+  assert.equal((duplexExport.match(/class="duplex-field"/g)||[]).length,2,'Duplex back needs exactly two profile source fields');
+  assert(!duplexExport.includes('<image')&&!duplexExport.includes('href=')&&!duplexExport.includes('source-memory')&&!duplexExport.includes('data-pin-part='),
+    'Duplex export leaked a raster, external dependency, source proof, or DOM-only answer label');
+  assert(!duplexExport.includes('https://')&&(duplexExport.match(/http:\/\//g)||[]).length===1,
+    'Duplex export contains an external network dependency');
+  assert(duplexExport.length<50000,'Duplex vector artifact became unexpectedly heavy: '+duplexExport.length);
+  await page.click('#impression-edition');
+  const duplexPaper=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
+  assert.equal(await page.$eval('#impression-download',a=>a.download),'036js-paper-duplex-impression.svg',
+    'Paper edition lost duplex export naming');
+  assert(duplexPaper.includes('#e6e2d7')&&duplexPaper.includes('#386770')&&duplexPaper.includes('#665577'),
+    'Paper duplex export did not recolor both faces');
+  assert(!duplexPaper.includes('<image')&&!duplexPaper.includes('href='),
+    'Paper duplex export stopped being self-contained vector geometry');
   await open();
   assert.equal(await page.$$eval('link[href*="verso-echo.css?v=1"]',xs=>xs.length),1,'Verso echo stylesheet missing from hub');
   assert(await page.$eval('.gallery',e=>e.classList.contains('joined')&&e.classList.contains('verso-seen')),

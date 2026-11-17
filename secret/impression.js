@@ -117,9 +117,17 @@
   }
   function exportPrint(){
     if(url)URL.revokeObjectURL(url);
-    const source='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="1200" height="1200"><rect width="400" height="400" fill="#121820"/><g stroke="#536b79" stroke-width=".75" fill="none"><path d="M42 60V42H60M340 42H358V60M358 340V358H340M60 358H42V340"/></g>'+grain+outlines+veins+body+exportPins+'</svg>';
+    const front='<rect width="400" height="400" fill="#121820"/><g stroke="#536b79" stroke-width=".75" fill="none"><path d="M42 60V42H60M340 42H358V60M358 340V358H340M60 358H42V340"/></g>'+grain+outlines+veins+body+exportPins;
+    const duplex=localStorage.getItem('nb036-verso-v1:seen')==='1'&&!!window.NBDuplexBack?.svg;
+    const source=duplex
+      ?'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 400" width="2520" height="1200"><g class="duplex-front">'+front+'</g><g transform="translate(440 0)">'+window.NBDuplexBack.svg+'</g></svg>'
+      :'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="1200" height="1200">'+front+'</svg>';
     url=URL.createObjectURL(new Blob([recolor(source,edition==='paper')],{type:'image/svg+xml'}));
     download.href=url;
+    download.download='036js-'+edition+(duplex?'-duplex':'')+'-impression.svg';
+    download.setAttribute('aria-label',duplex
+      ?(edition==='paper'?'保存双面纸本夜蝶印版':'保存双面夜蝶印版')
+      :(edition==='paper'?'保存纸本夜蝶印图':'保存夜蝶反印图'));
   }
   function complete(){
     angle=0;solved=true;drag=null;
@@ -208,5 +216,5 @@
   // source ghost is visible only while the plate is actually registered.
   renderContacts();
   if(localStorage.getItem(state)==='1')complete();else render();
-  addEventListener('pageshow',renderContacts);
+  addEventListener('pageshow',()=>{renderContacts();if(solved)exportPrint()});
 })();
