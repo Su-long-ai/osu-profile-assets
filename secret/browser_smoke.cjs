@@ -524,7 +524,7 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('script[src*="impression.js?v=7"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="impression.js?v=8"]',xs=>xs.length),1,
     'Impression contact-history initializer is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Impression metrics cache version is stale');
@@ -683,6 +683,11 @@ assert.equal(invalidSingleEval.length,0,
     'Individual proof failed to suppress the other contact ghosts');
   assert(await page.$eval('#verso-entry',e=>e.classList.contains('available')),
     'Completed contact history did not unlock the physical verso axis');
+  assert.equal(await page.$$eval('link[href*="verso-ready.css?v=1"]',xs=>xs.length),1,'Verso-ready convergence stylesheet missing');
+  assert.equal(await page.$$eval('#verso-ready-lines path[pathLength="1"]',xs=>xs.length),4,
+    'Third-read convergence needs four normalized registration paths');
+  assert(await page.$eval('#plate',e=>e.classList.contains('verso-ready-cue')),
+    'Unread profile verso did not trigger the one-shot convergence cue');
   assert.equal(await page.$eval('#verso-entry',e=>e.tabIndex),0,'Unlocked verso axis is missing from keyboard focus');
   assert.equal(await page.$eval('#verso-entry',e=>e.getAttribute('href')),'./verso.html','Verso axis points to the wrong back side');
   const versoBox=await page.$eval('#verso-entry .verso-hit',e=>{const r=e.getBoundingClientRect();return [r.width,r.height]});
@@ -724,6 +729,10 @@ assert.equal(invalidSingleEval.length,0,
   await page.waitForFunction(()=>location.pathname.endsWith('/impression.html'),{timeout:5000});
   assert(await page.$eval('#plate',e=>e.classList.contains('solved')&&e.classList.contains('contact-complete')),
     'Returning from profile verso lost the registered/contacted print');
+  assert.equal(await page.$eval('#plate',e=>e.classList.contains('verso-ready-cue')),false,
+    'Third-read convergence cue returned after the profile verso had already been seen');
+  assert(await page.$eval('#verso-entry',e=>e.classList.contains('available')),
+    'Retiring the discovery cue accidentally removed the physical verso route');
   await open();
   assert.equal(await page.$$eval('link[href*="verso-echo.css?v=1"]',xs=>xs.length),1,'Verso echo stylesheet missing from hub');
   assert(await page.$eval('.gallery',e=>e.classList.contains('joined')&&e.classList.contains('verso-seen')),

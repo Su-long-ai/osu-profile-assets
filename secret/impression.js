@@ -58,6 +58,8 @@
     const contactComplete=ids.length===parts.length;
     plate.classList.toggle('contact-complete',contactComplete);
     const versoAvailable=solved&&contactComplete;
+    const versoSeen=localStorage.getItem('nb036-verso-v1:seen')==='1';
+    plate.classList.toggle('verso-ready-cue',versoAvailable&&!versoSeen);
     versoEntry.classList.toggle('available',versoAvailable);
     versoEntry.tabIndex=versoAvailable?0:-1;
     versoEntry.setAttribute('aria-hidden',String(!versoAvailable));
@@ -206,4 +208,5 @@
   // source ghost is visible only while the plate is actually registered.
   renderContacts();
   if(localStorage.getItem(state)==='1')complete();else render();
+  addEventListener('pageshow',renderContacts);
 })();
