@@ -784,8 +784,8 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('link[href*="folio.css?v=1"]',xs=>xs.length),1,'Gatefold folio stylesheet missing');
   assert.equal(await page.$$eval('script[src*="folio.js?v=3"]',xs=>xs.length),1,'Gatefold folio route-comparison client revision missing');
   assert.equal(await page.$$eval('.folio-panel',xs=>xs.length),3,'Gatefold folio needs exactly two flaps and one recto panel');
-  assert.equal(await page.$eval('.folio-route-signature.room-route path',xs=>xs.length),4,'Gatefold first-act route comparison needs four ticks');
-  assert.equal(await page.$eval('.folio-route-signature.contact-route path',xs=>xs.length),4,'Gatefold second-act route comparison needs four ticks');
+  assert.equal(await page.$$eval('.folio-route-signature.room-route path',xs=>xs.length),4,'Gatefold first-act route comparison needs four ticks');
+  assert.equal(await page.$$eval('.folio-route-signature.contact-route path',xs=>xs.length),4,'Gatefold second-act route comparison needs four ticks');
   const routeColorById={keys:'#9cc4c9',dates:'#b7adcb',mirror:'#a6c7ce',margin:'#bba8c9'};
   const currentRouteOrders=await page.evaluate(()=>({
     rooms:JSON.parse(localStorage.getItem('nb036-route-v1:rooms')||'[]'),
@@ -797,9 +797,9 @@ assert.equal(invalidSingleEval.length,0,
   const expectedContactRouteColors=currentRouteOrders.contacts.map(x=>routeColorById[x]);
   assert(expectedRoomRouteColors.every(Boolean)&&expectedContactRouteColors.every(Boolean),
     'Browser smoke route history contains an unknown fragment: '+JSON.stringify(currentRouteOrders));
-  assert.deepEqual(await page.$eval('.folio-route-signature.room-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
+  assert.deepEqual(await page.$$eval('.folio-route-signature.room-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
     expectedRoomRouteColors,'Gatefold first-act route colors drifted from the browser\'s actual local solve order');
-  assert.deepEqual(await page.$eval('.folio-route-signature.contact-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
+  assert.deepEqual(await page.$$eval('.folio-route-signature.contact-route path',xs=>xs.map(x=>x.getAttribute('stroke'))),
     expectedContactRouteColors,'Gatefold second-act route colors drifted from the browser\'s actual local contact order');
   assert.equal(await page.$$eval('#folio-download',xs=>xs.length),1,'Gatefold folio physical export control missing');
   assert.equal(await page.$eval('#folio-download',e=>e.tabIndex),-1,'Gatefold export entered focus order before the folio was folded');
