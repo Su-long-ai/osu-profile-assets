@@ -709,11 +709,22 @@ assert.equal(invalidSingleEval.length,0,
     ['https://osu.ppy.sh/users/25520572','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/36372669','https://osu.ppy.sh/users/16178831','https://osu.ppy.sh/users/34523998','https://osu.ppy.sh/users/26795413','https://osu.ppy.sh/users/27235859','https://osu.ppy.sh/users/16233573','https://osu.ppy.sh/users/33005235','https://osu.ppy.sh/users/32910954','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/32358269','https://osu.ppy.sh/users/34278014'],
     'Profile verso collaborator links drifted from the public profile');
   assert.equal(await page.$eval('.verso-register',e=>e.getAttribute('href')),'./impression.html#verso','Verso registration axis does not flip back to the print');
+  assert.equal(await page.$eval('script[src*="verso.js?v=3"]',xs=>xs.length),1,
+    'Third-read verso client cache version is stale');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-verso-v1:seen')),'1',
+    'Viewing the unlocked profile verso did not persist the third-read history flag');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Profile verso overflows horizontally');
   await page.click('.verso-register');
   await page.waitForFunction(()=>location.pathname.endsWith('/impression.html'),{timeout:5000});
   assert(await page.$eval('#plate',e=>e.classList.contains('solved')&&e.classList.contains('contact-complete')),
     'Returning from profile verso lost the registered/contacted print');
+  await open();
+  assert.equal(await page.$$eval('link[href*="verso-echo.css?v=1"]',xs=>xs.length),1,'Verso echo stylesheet missing from hub');
+  assert(await page.$eval('.gallery',e=>e.classList.contains('joined')&&e.classList.contains('verso-seen')),
+    'Completed hub did not retain the quiet third-read echo after viewing verso');
+  const echoedSeal=await page.$eval('#completion-seal',e=>{const r=e.getBoundingClientRect();const p=getComputedStyle(e,'::before');return {w:r.width,h:r.height,content:p.content,opacity:Number(p.opacity)}});
+  assert(echoedSeal.w>=80&&echoedSeal.h>=80&&echoedSeal.content!=='none'&&echoedSeal.opacity>=.5,
+    'Third-read echo changed the seal geometry or failed to render: '+JSON.stringify(echoedSeal));
 
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
