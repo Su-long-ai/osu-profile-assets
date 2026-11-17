@@ -315,13 +315,13 @@ assert.equal(invalidSingleEval.length,0,
   await open('stats.html');
   await wordless();
   assert.equal(await page.$$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
-  assert.equal(await page.$eval('.stats-act-two .stats-row:not(.stats-artifact-branch) [id^="misc-"]',e=>e.length),3,
+  assert.equal(await page.$$eval('.stats-act-two .stats-row:not(.stats-artifact-branch) [id^="misc-"]',e=>e.length),3,
     'Stats main funnel needs impression, contact, and verso stages');
-  assert.deepEqual(await page.$eval('.stats-act-two .stats-row:not(.stats-artifact-branch) output',xs=>xs.map(x=>x.id)),
+  assert.deepEqual(await page.$$eval('.stats-act-two .stats-row:not(.stats-artifact-branch) output',xs=>xs.map(x=>x.id)),
     ['misc-impression','misc-contact','misc-verso'],'Stats main act-two stages drifted');
-  assert.equal(await page.$eval('.stats-act-two .stats-artifact-branch #misc-duplex',xs=>xs.length),1,
+  assert.equal(await page.$$eval('.stats-act-two .stats-artifact-branch #misc-duplex',xs=>xs.length),1,
     'Optional duplex-download branch is missing or duplicated');
-  assert.equal(await page.$eval('link[href*="stats-funnel.css?v=2"]',xs=>xs.length),1,'Stats optional-branch stylesheet revision missing');
+  assert.equal(await page.$$eval('link[href*="stats-funnel.css?v=2"]',xs=>xs.length),1,'Stats optional-branch stylesheet revision missing');
   assert(await page.evaluate(()=>typeof window.nightButterflyMetrics?.record==='function'&&typeof window.nightButterflyMetrics?.count==='function'),
     'Stats metrics API is unavailable');
   const statsBranch=await page.$eval('.stats-artifact-branch',e=>{
