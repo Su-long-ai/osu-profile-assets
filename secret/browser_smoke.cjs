@@ -695,6 +695,14 @@ assert.equal(invalidSingleEval.length,0,
     'Profile-verso metrics cache version is stale');
   assert.equal(await page.$$eval('.hot.play',xs=>xs.length),5,'Profile verso must preserve five selected-play regions');
   assert.equal(await page.$$eval('.hot.collab',xs=>xs.length),13,'Profile verso must preserve thirteen shared-frame regions');
+  assert.equal(await page.$$eval('link[href*="verso-origin.css?v=1"]',xs=>xs.length),1,'Verso origin stylesheet missing');
+  assert.equal(await page.$$eval('.verso-origin-mark',xs=>xs.length),2,'Verso needs exactly two profile-origin marks');
+  assert.deepEqual(await page.$$eval('.verso-origin-mark circle',xs=>xs.map(x=>[Number(x.getAttribute('cx')),Number(x.getAttribute('cy')),Number(x.getAttribute('r'))])),
+    [[850,1818,16],[846,1170,15]],'Verso profile-origin coordinates drifted from the v42 raster seeds');
+  assert(await page.$$eval('.verso-origin-mark',xs=>xs.every(x=>Number(getComputedStyle(x).opacity)<.01)),
+    'Verso origin marks must stay latent at rest');
+  await page.$eval('.verso-register',e=>e.focus());
+  await page.waitForFunction(()=>[...document.querySelectorAll('.verso-origin-mark')].every(x=>Number(getComputedStyle(x).opacity)>=.7),{timeout:2500});
   const versoSources=await page.$$eval('.verso-panel image',xs=>xs.map(x=>x.getAttribute('href')||''));
   assert.equal(versoSources.filter(x=>x.includes('036js-v42-selected-plays-body.jpg')).length,6,
     'Profile verso selected-play layers drifted from the v42 public-profile source');
