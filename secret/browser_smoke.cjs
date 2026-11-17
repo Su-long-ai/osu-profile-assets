@@ -532,7 +532,7 @@ assert.equal(invalidSingleEval.length,0,
     'Impression source-proof stylesheet missing');
   assert.equal(await page.$$eval('link[href*="registered-graph.css?v=2"]',xs=>xs.length),1,
     'Registered archive graph stylesheet missing from impression');
-  assert.equal(await page.$$eval('link[href*="verso.css?v=1"]',xs=>xs.length),1,'Profile-verso stylesheet missing from impression');
+  assert.equal(await page.$$eval('link[href*="verso.css?v=2"]',xs=>xs.length),1,'Profile-verso stylesheet missing from impression');
   assert.equal(await page.$$eval('#verso-entry',xs=>xs.length),1,'Impression lost its physical verso axis');
   assert.equal(await page.$eval('#verso-entry',e=>e.tabIndex),-1,'Verso axis must stay out of focus before all archive contacts');
   assert.equal(await page.$eval('#verso-entry',e=>e.hasAttribute('href')),false,'Verso route leaked before all archive contacts');
@@ -708,10 +708,14 @@ assert.equal(invalidSingleEval.length,0,
     'Unread profile verso did not trigger the one-shot convergence cue');
   assert.equal(await page.$eval('#verso-entry',e=>e.tabIndex),0,'Unlocked verso axis is missing from keyboard focus');
   assert.equal(await page.$eval('#verso-entry',e=>e.getAttribute('href')),'./verso.html','Verso axis points to the wrong back side');
+  assert.equal(await page.$eval('#verso-entry',e=>getComputedStyle(e).outlineStyle),'none',
+    'Verso axis fell back to the browser rectangular focus outline');
   const versoBox=await page.$eval('#verso-entry .verso-hit',e=>{const r=e.getBoundingClientRect();return [r.width,r.height]});
   assert(versoBox[0]>=40&&versoBox[1]>=40,'Verso flip target is too small: '+JSON.stringify(versoBox));
   await page.click('#verso-entry');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('link[href*="verso.css?v=2"]',xs=>xs.length),1,
+    'Profile verso did not pick up the focus-cleanup stylesheet revision');
   assert.equal(await page.$$eval('script[src*="verso.js?v=3"]',xs=>xs.length),1,
     'Profile-verso client cache version is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
