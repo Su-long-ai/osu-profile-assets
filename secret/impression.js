@@ -75,12 +75,11 @@
     const rooms=routeOrder('nb036-route-v1:rooms'),contacts=routeOrder('nb036-route-v1:contacts');
     if(rooms.length!==4||contacts.length!==4)return '';
     const color=Object.fromEntries(parts.map(p=>[p.id,p.color]));
-    const ticks=(list,x0,y,dir)=>list.map((id,i)=>{
-      const x=x0+i*4;
-      return '<path d="M'+x+' '+(y-dir*1.8)+'v'+(dir*3.6)+'" stroke="'+color[id]+'" stroke-width="1.05" stroke-linecap="round"/>';
-    }).join('');
-    return '<g class="duplex-route-signature" fill="none" opacity=".72">'+
-      ticks(rooms,402,11,1)+ticks(contacts,426,389,1)+'</g>';
+    const ticks=(list,x,y0)=>list.map((id,i)=>
+      '<path d="M'+x+' '+(y0+i*10)+'h3" stroke="'+color[id]+'" stroke-width=".9" stroke-linecap="round"/>'
+    ).join('');
+    return '<g class="duplex-route-signature" fill="none" opacity=".68">'+
+      ticks(rooms,412,78)+ticks(contacts,425,78)+'</g>';
   };
   let angle=67,solved=false,drag=null,url='',edition='night',pinnedProof=null;
   const contactIds=()=>parts.filter(p=>localStorage.getItem('nb036-impression-v3:contact:'+p.id)==='1').map(p=>p.id);

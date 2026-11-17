@@ -865,8 +865,17 @@ assert.equal(invalidSingleEval.length,0,
   assert.deepEqual(routeSignature.map(x=>x.stroke),
     ['#665577','#386770','#75556e','#416773','#416773','#75556e','#386770','#665577'],
     'Solve signature no longer preserves the two local route orders');
-  assert(routeSignature.every(x=>/^M(?:402|406|410|414|426|430|434|438) /.test(x.d)),
-    'Solve signature drifted away from the duplex gutter');
+  const routeFold=routeSignature.map(x=>{
+    const m=/^M(412|425) (78|88|98|108)h3$/.exec(x.d);return m?[Number(m[1]),Number(m[2])]:null;
+  });
+  assert(routeFold.every(Boolean),'Fold-through signature drifted from its paired gutter coordinates: '+JSON.stringify(routeFold));
+  assert.deepEqual(routeFold.slice(0,4),[[412,78],[412,88],[412,98],[412,108]],
+    'First-act route ticks left the recto side of the fold');
+  assert.deepEqual(routeFold.slice(4),[[425,78],[425,88],[425,98],[425,108]],
+    'Second-act route ticks left the verso side of the fold');
+  assert.deepEqual(routeFold.slice(4).map(([x,y])=>[840-(x+3),y,840-x,y]),
+    routeFold.slice(0,4).map(([x,y])=>[x,y,x+3,y]),
+    'Folding at x=420 no longer overlays the two solve orders ordinal by ordinal');
   assert(!/uuid|timestamp|date|time|text|<text/i.test(duplexPaper),
     'Solve signature acquired identity-like or textual metadata');
   assert(duplexPaper.includes('stroke="#84918d"'),
