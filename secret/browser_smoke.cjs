@@ -315,12 +315,23 @@ assert.equal(invalidSingleEval.length,0,
   await open('stats.html');
   await wordless();
   assert.equal(await page.$$eval('.stats-scene > .stats-row [id^="misc-"]',e=>e.length),5);
-  assert.equal(await page.$$eval('.stats-act-two .stats-row [id^="misc-"]',e=>e.length),3,
-    'Stats funnel needs impression, contact, and verso stages');
-  assert.deepEqual(await page.$$eval('.stats-act-two output',xs=>xs.map(x=>x.id)),
-    ['misc-impression','misc-contact','misc-verso'],'Stats act-two stages drifted');
-  assert.equal(await page.$$eval('link[href*="stats-funnel.css?v=1"]',xs=>xs.length),1,'Stats funnel stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,'Stats metrics cache version is stale');
+  assert.equal(await page.$eval('.stats-act-two .stats-row:not(.stats-artifact-branch) [id^="misc-"]',e=>e.length),3,
+    'Stats main funnel needs impression, contact, and verso stages');
+  assert.deepEqual(await page.$eval('.stats-act-two .stats-row:not(.stats-artifact-branch) output',xs=>xs.map(x=>x.id)),
+    ['misc-impression','misc-contact','misc-verso'],'Stats main act-two stages drifted');
+  assert.equal(await page.$eval('.stats-act-two .stats-artifact-branch #misc-duplex',xs=>xs.length),1,
+    'Optional duplex-download branch is missing or duplicated');
+  assert.equal(await page.$eval('link[href*="stats-funnel.css?v=2"]',xs=>xs.length),1,'Stats optional-branch stylesheet revision missing');
+  assert(await page.evaluate(()=>typeof window.nightButterflyMetrics?.record==='function'&&typeof window.nightButterflyMetrics?.count==='function'),
+    'Stats metrics API is unavailable');
+  const statsBranch=await page.$eval('.stats-artifact-branch',e=>{
+    const r=e.getBoundingClientRect(),p=e.parentElement.querySelector('.stats-row:not(.stats-artifact-branch)')?.getBoundingClientRect(),s=getComputedStyle(e),b=getComputedStyle(e,'::before');
+    return {x:r.x,w:r.width,mainX:p?.x,mainW:p?.width,ml:parseFloat(s.marginLeft),opacity:parseFloat(s.opacity),connector:b.content,borderLeft:b.borderLeftWidth,borderBottom:b.borderBottomWidth};
+  });
+  assert(statsBranch.ml>=25&&statsBranch.x>statsBranch.mainX+20&&statsBranch.w<statsBranch.mainW-20&&statsBranch.opacity<.65,
+    'Optional duplex branch reads like a required main-funnel stage: '+JSON.stringify(statsBranch));
+  assert(statsBranch.connector!=='none'&&statsBranch.borderLeft!=='0px'&&statsBranch.borderBottom!=='0px',
+    'Optional duplex branch lost its visual branch connector');
   assert.equal(await page.$$eval('.stats-spoke',xs=>xs.length),4,'Stats map needs four parallel source spokes');
   assert.equal(await page.$$eval('.stats-tip',xs=>xs.length),4,'Stats map needs four source tips');
   assert.equal(await page.$$eval('.stats-assembly-ring',xs=>xs.length),1,'Stats map needs one assembly hub');
