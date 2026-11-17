@@ -211,6 +211,10 @@
     selectEdition(edition==='night'?'paper':'night');
     status.textContent=edition==='paper'?'纸本印图，可保存':'夜色反印图，可保存';
   });
+  download.addEventListener('click',()=>{
+    if(!solved||localStorage.getItem('nb036-verso-v1:seen')!=='1')return;
+    void window.nightButterflyMetrics?.record('misc-duplex').catch(()=>{});
+  });
   stage.hidden=false;
   // Contact is historical state independent of the plate's current rotation.
   // Restore its classes on every fresh document; CSS decides that the combined

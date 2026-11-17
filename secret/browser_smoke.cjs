@@ -524,9 +524,9 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('script[src*="impression.js?v=10"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="impression.js?v=11"]',xs=>xs.length),1,
     'Impression contact-history initializer is stale');
-  assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="metrics.js?v=3"]',xs=>xs.length),1,
     'Impression metrics cache version is stale');
   assert.equal(await page.$$eval('link[href*="impression-source.css?v=2"]',xs=>xs.length),1,
     'Impression source-proof stylesheet missing');
@@ -791,6 +791,12 @@ assert.equal(invalidSingleEval.length,0,
   assert(!duplexExport.includes('https://')&&(duplexExport.match(/http:\/\//g)||[]).length===1,
     'Duplex export contains an external network dependency');
   assert(duplexExport.length<50000,'Duplex vector artifact became unexpectedly heavy: '+duplexExport.length);
+  await page.evaluate(()=>{
+    window.__duplexMetricCalls=[];
+    window.nightButterflyMetrics.record=async stage=>{window.__duplexMetricCalls.push(stage);return true};
+  });
+  assert.deepEqual(await page.evaluate(()=>window.__duplexMetricCalls),[],
+    'Optional duplex metric fired before the user requested the artifact');
   await page.click('#impression-edition');
   const duplexPaper=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
   assert.equal(await page.$eval('#impression-download',a=>a.download),'036js-paper-duplex-impression.svg',
@@ -805,6 +811,10 @@ assert.equal(invalidSingleEval.length,0,
     'Paper duplex fold marks did not recolor with the print edition');
   assert(!duplexPaper.includes('<image')&&!duplexPaper.includes('href='),
     'Paper duplex export stopped being self-contained vector geometry');
+  await page.$eval('#impression-download',e=>e.click());
+  await page.waitForFunction(()=>window.__duplexMetricCalls?.length===1,{timeout:2000});
+  assert.deepEqual(await page.evaluate(()=>window.__duplexMetricCalls),['misc-duplex'],
+    'Third-read duplex download did not emit exactly one optional artifact-engagement event');
   await open();
   assert.equal(await page.$$eval('link[href*="verso-echo.css?v=1"]',xs=>xs.length),1,'Verso echo stylesheet missing from hub');
   assert(await page.$eval('.gallery',e=>e.classList.contains('joined')&&e.classList.contains('verso-seen')),
@@ -813,6 +823,10 @@ assert.equal(invalidSingleEval.length,0,
   assert(echoedSeal.w>=80&&echoedSeal.h>=80&&echoedSeal.content!=='none'&&echoedSeal.opacity>=.5,
     'Third-read echo changed the seal geometry or failed to render: '+JSON.stringify(echoedSeal));
 
+  await open('stats.html');
+  assert.equal(await page.$$eval('script[src*="metrics.js?v=3"]',xs=>xs.length),1,'Stats metrics cache version is stale');
+  assert.equal(await page.$$eval('.stats-artifact-branch #misc-duplex',xs=>xs.length),1,
+    'Stats page lost the optional duplex-download branch');
   const tape=await page.goto(base+'tape.html',{waitUntil:'domcontentloaded',timeout:27000});
   assert.equal(tape.status(),200);
   await page.waitForFunction(()=>location.pathname.replace(/\/$/,'').endsWith('/secret')&&document.querySelector('.gallery'),{timeout:10000});
