@@ -782,8 +782,11 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('.verso-register');
   await page.waitForFunction(()=>location.pathname.endsWith('/folio.html')&&!document.querySelector('.folio-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="folio.css?v=1"]',xs=>xs.length),1,'Gatefold folio stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="folio.js?v=1"]',xs=>xs.length),1,'Gatefold folio client missing');
+  assert.equal(await page.$$eval('script[src*="folio.js?v=2"]',xs=>xs.length),1,'Gatefold folio client revision missing');
   assert.equal(await page.$$eval('.folio-panel',xs=>xs.length),3,'Gatefold folio needs exactly two flaps and one recto panel');
+  assert.equal(await page.$$eval('#folio-download',xs=>xs.length),1,'Gatefold folio physical export control missing');
+  assert.equal(await page.$eval('#folio-download',e=>e.tabIndex),-1,'Gatefold export entered focus order before the folio was folded');
+  assert.equal(await page.$eval('#folio-download',e=>e.getAttribute('aria-hidden')),'true','Gatefold export exposed itself before the fold');
   assert.deepEqual(await page.$$eval('#folio-left,#folio-center,#folio-right',xs=>xs.map(x=>x.getAttribute('viewBox'))),
     ['192 0 208 400','0 0 400 400','0 0 192 400'],'Gatefold folio panel geometry drifted');
   const folioWidths=await page.$eval('#folio',e=>{const r=e.getBoundingClientRect();return [...e.querySelectorAll('.folio-panel')].map(x=>x.getBoundingClientRect().width/r.width)});
@@ -795,6 +798,21 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$eval('#folio-hinge',e=>e.getAttribute('aria-pressed')),'true','Gatefold hinge did not close the folio');
   assert.notEqual(await page.$eval('.folio-left',e=>getComputedStyle(e).transform),'none','Left gate did not fold');
   assert.notEqual(await page.$eval('.folio-right',e=>getComputedStyle(e).transform),'none','Right gate did not fold');
+  assert.equal(await page.$eval('#folio-download',e=>e.tabIndex),0,'Folded folio did not reveal the physical export');
+  assert.equal(await page.$eval('#folio-download',e=>e.getAttribute('aria-hidden')),'false','Folded folio export stayed hidden from accessibility');
+  assert.equal(await page.$eval('#folio-download',e=>e.download),'036js-night-gatefold.svg','Night gatefold export naming drifted');
+  const gatefoldExport=await page.$eval('#folio-download',async a=>await (await fetch(a.href)).text());
+  assert(gatefoldExport.includes('viewBox="0 0 800 400"')&&gatefoldExport.includes('width="240mm" height="120mm"'),
+    'Gatefold export lost its 800-unit / 240mm physical sheet geometry');
+  assert.equal((gatefoldExport.match(/class="gatefold-selected"/g)||[]).length,1,'Gatefold selected-play flap missing');
+  assert.equal((gatefoldExport.match(/class="gatefold-front"/g)||[]).length,1,'Gatefold recto panel missing');
+  assert.equal((gatefoldExport.match(/class="gatefold-shared"/g)||[]).length,1,'Gatefold shared-frame flap missing');
+  assert.equal((gatefoldExport.match(/class="gatefold-folds"/g)||[]).length,1,'Gatefold physical fold marks missing');
+  assert(gatefoldExport.includes('M208 4v14M204 11h8M608 4v14M604 11h8')&&gatefoldExport.includes('M208 382v14M204 389h8M608 382v14M604 389h8'),
+    'Gatefold fold marks moved away from x=208/x=608');
+  assert(!gatefoldExport.includes('<image')&&!gatefoldExport.includes('https://')&&!gatefoldExport.includes('source-memory'),
+    'Gatefold export leaked a raster or external dependency');
+  assert(gatefoldExport.length<60000,'Gatefold vector artifact became unexpectedly heavy: '+gatefoldExport.length);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Gatefold folio overflows horizontally');
   await page.$eval('#folio-hinge',e=>e.focus());await page.keyboard.press('Enter');
   assert.equal(await page.$eval('#folio-hinge',e=>e.getAttribute('aria-pressed')),'false','Gatefold hinge is not keyboard-reversible');

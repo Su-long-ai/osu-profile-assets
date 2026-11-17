@@ -17,7 +17,31 @@ const recolor=source=>localStorage.getItem('nb036-impression-v2:edition')==='pap
 document.querySelector('#folio-left').innerHTML=recolor(window.NBDuplexBack.svg);
 document.querySelector('#folio-center').innerHTML=recolor(front);
 document.querySelector('#folio-right').innerHTML=recolor(window.NBDuplexBack.svg);
-const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge');
-hinge.addEventListener('click',()=>{const on=folio.classList.toggle('folded');hinge.setAttribute('aria-pressed',String(on))});
+const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge'),download=document.querySelector('#folio-download');
+const edition=localStorage.getItem('nb036-impression-v2:edition')==='paper'?'paper':'night';
+let exportUrl='';
+const gatefoldSvg=()=>{
+  const frontFace=recolor(front),backFace=recolor(window.NBDuplexBack.svg);
+  const foldMarks='<g class="gatefold-folds" fill="none" stroke="'+(edition==='paper'?'#84918d':'#536b79')+'" stroke-width=".7" stroke-linecap="round" opacity=".62">'+
+    '<path d="M208 4v14M204 11h8M608 4v14M604 11h8"/><path d="M208 382v14M204 389h8M608 382v14M604 389h8"/></g>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="240mm" height="120mm">'+
+    '<defs><clipPath id="gate-selected"><rect x="0" y="0" width="208" height="400"/></clipPath><clipPath id="gate-shared"><rect x="608" y="0" width="192" height="400"/></clipPath></defs>'+
+    '<g class="gatefold-selected" clip-path="url(#gate-selected)"><g transform="translate(-192 0)">'+backFace+'</g></g>'+
+    '<g class="gatefold-front" transform="translate(208 0)">'+frontFace+'</g>'+
+    '<g class="gatefold-shared" clip-path="url(#gate-shared)"><g transform="translate(608 0)">'+backFace+'</g></g>'+foldMarks+'</svg>';
+};
+const refreshDownload=()=>{
+  if(exportUrl)URL.revokeObjectURL(exportUrl);
+  exportUrl=URL.createObjectURL(new Blob([gatefoldSvg()],{type:'image/svg+xml'}));
+  download.href=exportUrl;download.download='036js-'+edition+'-gatefold.svg';
+};
+refreshDownload();
+hinge.addEventListener('click',()=>{
+  const on=folio.classList.toggle('folded');
+  hinge.setAttribute('aria-pressed',String(on));
+  download.tabIndex=on?0:-1;
+  download.setAttribute('aria-hidden',String(!on));
+});
+addEventListener('pagehide',()=>{if(exportUrl)URL.revokeObjectURL(exportUrl)});
 document.querySelector('.folio-stage').hidden=false;
 })();
