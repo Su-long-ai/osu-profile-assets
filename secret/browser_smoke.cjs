@@ -613,6 +613,9 @@ assert.equal(invalidSingleEval.length,0,
     'Paper export registration pins were not recolored with the print');
   assert(!paperExport.includes('<image')&&!paperExport.includes('source-memory')&&!paperExport.includes('transfer-core'),
     'Paper export leaked temporary source/contact state');
+  await page.click('#impression-edition');
+  assert.equal(await page.$eval('#impression-edition',e=>e.getAttribute('aria-pressed')),'false',
+    'Browser smoke did not restore the night edition before reprint/contact checks');
   await page.click('#reprint');
   assert.equal(await page.$eval('#plate',e=>e.getAttribute('role')),'slider','Reprint did not restore slider semantics');
   assert.equal(await page.$eval('#plate',e=>e.tabIndex),0,'Reprint did not restore slider focus');
