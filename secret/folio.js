@@ -19,6 +19,31 @@ document.querySelector('#folio-center').innerHTML=recolor(front);
 document.querySelector('#folio-right').innerHTML=recolor(window.NBDuplexBack.svg);
 const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge'),download=document.querySelector('#folio-download');
 const edition=localStorage.getItem('nb036-impression-v2:edition')==='paper'?'paper':'night';
+const color=Object.fromEntries(parts.map(p=>[p.id,p.color]));
+const routeTicks=(list,x0,y0)=>{
+  return list.map((id,i)=>{
+    const ink=edition==='paper'?(paperInk[color[id]]||color[id]):color[id];
+    return '<path d="M'+x0+' '+(y0+i*10)+'h4" stroke="'+ink+'" stroke-width=".9" stroke-linecap="round"/>';
+  }).join('');
+};
+const roomRoute=routeOrder('nb036-route-v1:rooms'),contactRoute=routeOrder('nb036-route-v1:contacts');
+const routeSignature='<g class="gatefold-route-signature" fill="none" opacity=".72">'+
+  routeTicks(roomRoute,204,78)+routeTicks(contactRoute,608,78)+'</g>';
+const appendPreviewSignature=()=>{
+  const ns='http://www.w3.org/2000/svg';
+  const add=(root,list,x0,cls)=>{
+    const g=document.createElementNS(ns,'g');g.setAttribute('class','folio-route-signature '+cls);g.setAttribute('fill','none');g.setAttribute('opacity','.72');
+    list.forEach((id,i)=>{
+      const path=document.createElementNS(ns,'path');path.setAttribute('d','M'+x0+' '+(78+i*10)+'h4');
+      path.setAttribute('stroke',edition==='paper'?(paperInk[color[id]]||color[id]):color[id]);
+      path.setAttribute('stroke-width','.9');path.setAttribute('stroke-linecap','round');g.append(path);
+    });
+    root.append(g);
+  };
+  add(document.querySelector('#folio-left'),roomRoute,396,'room-route');
+  add(document.querySelector('#folio-right'),contactRoute,0,'contact-route');
+};
+appendPreviewSignature();
 let exportUrl='';
 const gatefoldSvg=()=>{
   const frontFace=recolor(front),backFace=recolor(window.NBDuplexBack.svg);
@@ -28,7 +53,7 @@ const gatefoldSvg=()=>{
     '<defs><clipPath id="gate-selected"><rect x="0" y="0" width="208" height="400"/></clipPath><clipPath id="gate-shared"><rect x="608" y="0" width="192" height="400"/></clipPath></defs>'+
     '<g class="gatefold-selected" clip-path="url(#gate-selected)"><g transform="translate(-192 0)">'+backFace+'</g></g>'+
     '<g class="gatefold-front" transform="translate(208 0)">'+frontFace+'</g>'+
-    '<g class="gatefold-shared" clip-path="url(#gate-shared)"><g transform="translate(608 0)">'+backFace+'</g></g>'+foldMarks+'</svg>';
+    '<g class="gatefold-shared" clip-path="url(#gate-shared)"><g transform="translate(608 0)">'+backFace+'</g></g>'+foldMarks+routeSignature+'</svg>';
 };
 const refreshDownload=()=>{
   if(exportUrl)URL.revokeObjectURL(exportUrl);
