@@ -727,6 +727,21 @@ assert.equal(invalidSingleEval.length,0,
     'Verso axis fell back to the browser rectangular focus outline');
   const versoBox=await page.$eval('#verso-entry .verso-hit',e=>{const r=e.getBoundingClientRect();return [r.width,r.height]});
   assert(versoBox[0]>=40&&versoBox[1]>=40,'Verso flip target is too small: '+JSON.stringify(versoBox));
+  assert.equal(await page.$$eval('link[href*="transmitted-registration.css?v=1"]',xs=>xs.length),1,
+    'Transmitted registration stylesheet missing');
+  assert.equal(await page.$$eval('#duplex-registration-ghost',xs=>xs.length),1,
+    'Impression needs exactly one latent folded-registration ghost');
+  assert.equal(await page.$$eval('#duplex-registration-ghost .duplex-origin',xs=>xs.length),2,
+    'Latent fold preview needs exactly two back-side profile origins');
+  assert.equal(await page.$$eval('#duplex-registration-ghost .duplex-axis',xs=>xs.length),1,
+    'Latent fold preview needs exactly one back-side axis');
+  assert.equal(await page.$$eval('#duplex-registration-ghost .duplex-box,#duplex-registration-ghost .duplex-field',xs=>xs.length),0,
+    'Fold preview leaked the eighteen verso regions instead of registration geometry only');
+  assert(Number(await page.$eval('#duplex-registration-ghost',e=>getComputedStyle(e).opacity))<.01,
+    'Unread profile verso leaked a transmitted registration preview');
+  await page.$eval('#verso-entry',e=>e.focus());
+  assert(Number(await page.$eval('#duplex-registration-ghost',e=>getComputedStyle(e).opacity))<.01,
+    'Unread verso axis focus leaked a transmitted registration preview');
   await page.click('#verso-entry');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="verso.css?v=2"]',xs=>xs.length),1,
@@ -770,6 +785,19 @@ assert.equal(invalidSingleEval.length,0,
     'Third-read convergence cue returned after the profile verso had already been seen');
   assert(await page.$eval('#verso-entry',e=>e.classList.contains('available')),
     'Retiring the discovery cue accidentally removed the physical verso route');
+  assert(await page.$eval('#plate',e=>e.classList.contains('verso-seen')),
+    'Seen-verso history did not arm the transmitted registration layer');
+  await page.$eval('#verso-entry',e=>e.focus());
+  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('#duplex-registration-ghost')).opacity)>=.35,{timeout:1800});
+  const transmitted=await page.$eval('#duplex-registration-ghost',e=>{
+    const origins=[...e.querySelectorAll('.duplex-origin circle')].map(x=>[400-Number(x.getAttribute('cx')),Number(x.getAttribute('cy'))]);
+    const axis=e.querySelector('.duplex-axis circle');
+    return {opacity:Number(getComputedStyle(e).opacity),origins,axis:axis?[400-Number(axis.getAttribute('cx')),Number(axis.getAttribute('cy'))]:null};
+  });
+  assert.deepEqual(transmitted.origins,[[89,275],[272,333]],
+    'Transmitted back-side origins no longer register onto the recto pins');
+  assert.deepEqual(transmitted.axis,[200,200],
+    'Transmitted back-side axis no longer registers onto the recto center');
   const duplexName=await page.$eval('#impression-download',a=>a.download);
   const duplexExport=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
   assert.equal(duplexName,'036js-night-duplex-impression.svg','Seen verso did not upgrade the physical print download');
@@ -799,6 +827,8 @@ assert.equal(invalidSingleEval.length,0,
     'Folding the duplex no longer registers the verso axis onto the recto center');
   assert(!duplexExport.includes('<image')&&!duplexExport.includes('href=')&&!duplexExport.includes('source-memory')&&!duplexExport.includes('data-pin-part='),
     'Duplex export leaked a raster, external dependency, source proof, or DOM-only answer label');
+  assert(!duplexExport.includes('duplex-registration-ghost'),
+    'DOM-only transmitted fold preview leaked into the physical duplex artifact');
   assert(!duplexExport.includes('https://')&&(duplexExport.match(/http:\/\//g)||[]).length===1,
     'Duplex export contains an external network dependency');
   assert(duplexExport.length<50000,'Duplex vector artifact became unexpectedly heavy: '+duplexExport.length);

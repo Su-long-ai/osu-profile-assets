@@ -10,6 +10,20 @@
   const versoEntry=document.querySelector('#verso-entry');
   const fixed=document.querySelector('#print-layer'),turn=document.querySelector('#turn-layer'),pins=document.querySelector('#fixed-pins');
   const proofs=document.querySelector('#source-proofs'),hits=document.querySelector('#source-hits'),pinHits=document.querySelector('#pin-hits');
+  let duplexRegistrationGhost=null;
+  if(window.NBDuplexBack?.svg){
+    const doc=new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg">'+window.NBDuplexBack.svg+'</svg>','image/svg+xml');
+    const axis=doc.querySelector('.duplex-axis')?.outerHTML||'';
+    const origins=[...doc.querySelectorAll('.duplex-origin')].map(x=>x.outerHTML).join('');
+    if(axis&&origins){
+      duplexRegistrationGhost=document.createElementNS('http://www.w3.org/2000/svg','g');
+      duplexRegistrationGhost.id='duplex-registration-ghost';
+      duplexRegistrationGhost.setAttribute('aria-hidden','true');
+      duplexRegistrationGhost.setAttribute('transform','translate(400 0) scale(-1 1)');
+      duplexRegistrationGhost.innerHTML=axis+origins;
+      turn.parentNode.insertBefore(duplexRegistrationGhost,turn);
+    }
+  }
   const pt=[[100,93],[316,136],[89,275],[272,333]];
   const layout=parts.map((p,i)=>({p,x:i%2?202:81,y:i<2?99:197,i}));
   const groups=(fn)=>layout.map(o=>'<g transform="translate('+o.x+' '+o.y+') scale(.85)">'+fn(o.p,o.i)+'</g>').join('');
@@ -59,6 +73,7 @@
     plate.classList.toggle('contact-complete',contactComplete);
     const versoAvailable=solved&&contactComplete;
     const versoSeen=localStorage.getItem('nb036-verso-v1:seen')==='1';
+    plate.classList.toggle('verso-seen',versoSeen);
     plate.classList.toggle('verso-ready-cue',versoAvailable&&!versoSeen);
     versoEntry.classList.toggle('available',versoAvailable);
     versoEntry.tabIndex=versoAvailable?0:-1;
