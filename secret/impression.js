@@ -119,8 +119,9 @@
     if(url)URL.revokeObjectURL(url);
     const front='<rect width="400" height="400" fill="#121820"/><g stroke="#536b79" stroke-width=".75" fill="none"><path d="M42 60V42H60M340 42H358V60M358 340V358H340M60 358H42V340"/></g>'+grain+outlines+veins+body+exportPins;
     const duplex=localStorage.getItem('nb036-verso-v1:seen')==='1'&&!!window.NBDuplexBack?.svg;
+    const foldMarks='<g class="duplex-fold" fill="none" stroke="#536b79" stroke-width=".7" stroke-linecap="round" opacity=".58"><path d="M420 5v12M416 11h8"/><path d="M420 383v12M416 389h8"/></g>';
     const source=duplex
-      ?'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 400" width="2520" height="1200"><g class="duplex-front">'+front+'</g><g transform="translate(440 0)">'+window.NBDuplexBack.svg+'</g></svg>'
+      ?'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 400" width="2520" height="1200"><g class="duplex-front">'+front+'</g><g transform="translate(440 0)">'+window.NBDuplexBack.svg+'</g>'+foldMarks+'</svg>'
       :'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="1200" height="1200">'+front+'</svg>';
     url=URL.createObjectURL(new Blob([recolor(source,edition==='paper')],{type:'image/svg+xml'}));
     download.href=url;

@@ -589,6 +589,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(nightName,'036js-night-impression.svg','Third-read history leaked into the pre-verso export filename');
   assert(nightExport.includes('viewBox="0 0 400 400"')&&!nightExport.includes('class="duplex-back"'),
     'Pre-verso print must remain the single recto artifact');
+  assert(!nightExport.includes('class="duplex-fold"'),'Pre-verso single-face night export leaked fold marks');
   assert.equal(await page.$$eval('script[src*="duplex-back.js?v=1"]',xs=>xs.length),1,'Duplex back template is missing');
   const duplexThroughOrigins=await page.evaluate(()=>{
     const d=new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg">'+window.NBDuplexBack.svg+'</svg>','image/svg+xml');
@@ -607,6 +608,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(paperName,'036js-paper-impression.svg','Pre-verso paper export unexpectedly became duplex');
   assert(paperExport.includes('viewBox="0 0 400 400"')&&!paperExport.includes('class="duplex-back"'),
     'Pre-verso paper print must remain single-sided');
+  assert(!paperExport.includes('class="duplex-fold"'),'Pre-verso single-face paper export leaked fold marks');
   assert(paperExport.includes('class="export-registration-pins"'),'Downloaded paper print lost its four registration marks');
   assert.equal((paperExport.match(/r="5\.8"/g)||[]).length,4,'Downloaded paper print needs four registration rings');
   assert(paperExport.includes('#386770')&&paperExport.includes('#665577')&&paperExport.includes('#416773')&&paperExport.includes('#75556e'),
@@ -763,6 +765,23 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal((duplexExport.match(/class="duplex-box"/g)||[]).length,18,'Duplex back must preserve all 5+13 public-profile regions');
   assert.equal((duplexExport.match(/class="duplex-origin"/g)||[]).length,2,'Duplex back lost the two v42 origin marks');
   assert.equal((duplexExport.match(/class="duplex-field"/g)||[]).length,2,'Duplex back needs exactly two profile source fields');
+  assert.equal((duplexExport.match(/class="duplex-fold"/g)||[]).length,1,
+    'Third-read duplex export must carry exactly one fold-registration group');
+  assert(duplexExport.includes('M420 5v12M416 11h8')&&duplexExport.includes('M420 383v12M416 389h8'),
+    'Duplex fold marks moved away from the physical fold axis x=420');
+  const foldGeometry=await page.evaluate(svg=>{
+    const d=new DOMParser().parseFromString(svg,'image/svg+xml');
+    const origins=[...d.querySelectorAll('.duplex-origin circle')].map(x=>[Number(x.getAttribute('cx')),Number(x.getAttribute('cy'))]);
+    const axis=d.querySelector('.duplex-axis circle');
+    return {
+      folded:origins.map(([x,y])=>[840-(440+x),y]),
+      foldedAxis:axis?[840-(440+Number(axis.getAttribute('cx'))),Number(axis.getAttribute('cy'))]:null
+    };
+  },duplexExport);
+  assert.deepEqual(foldGeometry.folded,[[89,275],[272,333]],
+    'Folding the duplex no longer registers the two profile origins onto their recto pins');
+  assert.deepEqual(foldGeometry.foldedAxis,[200,200],
+    'Folding the duplex no longer registers the verso axis onto the recto center');
   assert(!duplexExport.includes('<image')&&!duplexExport.includes('href=')&&!duplexExport.includes('source-memory')&&!duplexExport.includes('data-pin-part='),
     'Duplex export leaked a raster, external dependency, source proof, or DOM-only answer label');
   assert(!duplexExport.includes('https://')&&(duplexExport.match(/http:\/\//g)||[]).length===1,
@@ -774,6 +793,10 @@ assert.equal(invalidSingleEval.length,0,
     'Paper edition lost duplex export naming');
   assert(duplexPaper.includes('#e6e2d7')&&duplexPaper.includes('#386770')&&duplexPaper.includes('#665577'),
     'Paper duplex export did not recolor both faces');
+  assert.equal((duplexPaper.match(/class="duplex-fold"/g)||[]).length,1,
+    'Paper duplex export lost the physical fold-registration marks');
+  assert(duplexPaper.includes('stroke="#84918d"'),
+    'Paper duplex fold marks did not recolor with the print edition');
   assert(!duplexPaper.includes('<image')&&!duplexPaper.includes('href='),
     'Paper duplex export stopped being self-contained vector geometry');
   await open();
