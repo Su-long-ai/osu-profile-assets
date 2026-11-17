@@ -689,7 +689,7 @@ assert.equal(invalidSingleEval.length,0,
   assert(versoBox[0]>=40&&versoBox[1]>=40,'Verso flip target is too small: '+JSON.stringify(versoBox));
   await page.click('#verso-entry');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
-  assert.equal(await page.$$eval('script[src*="verso.js?v=2"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="verso.js?v=3"]',xs=>xs.length),1,
     'Profile-verso client cache version is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Profile-verso metrics cache version is stale');
@@ -709,8 +709,6 @@ assert.equal(invalidSingleEval.length,0,
     ['https://osu.ppy.sh/users/25520572','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/36372669','https://osu.ppy.sh/users/16178831','https://osu.ppy.sh/users/34523998','https://osu.ppy.sh/users/26795413','https://osu.ppy.sh/users/27235859','https://osu.ppy.sh/users/16233573','https://osu.ppy.sh/users/33005235','https://osu.ppy.sh/users/32910954','https://osu.ppy.sh/users/29089125','https://osu.ppy.sh/users/32358269','https://osu.ppy.sh/users/34278014'],
     'Profile verso collaborator links drifted from the public profile');
   assert.equal(await page.$eval('.verso-register',e=>e.getAttribute('href')),'./impression.html#verso','Verso registration axis does not flip back to the print');
-  assert.equal(await page.$$eval('script[src*="verso.js?v=3"]',xs=>xs.length),1,
-    'Third-read verso client cache version is stale');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-verso-v1:seen')),'1',
     'Viewing the unlocked profile verso did not persist the third-read history flag');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Profile verso overflows horizontally');
