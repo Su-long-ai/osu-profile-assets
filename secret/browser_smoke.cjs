@@ -524,7 +524,7 @@ assert.equal(invalidSingleEval.length,0,
     localStorage.removeItem('nb036-impression-v2:edition');
   });
   await open('impression.html');
-  assert.equal(await page.$$eval('script[src*="impression.js?v=9"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="impression.js?v=10"]',xs=>xs.length),1,
     'Impression contact-history initializer is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Impression metrics cache version is stale');
@@ -589,6 +589,8 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(nightName,'036js-night-impression.svg','Third-read history leaked into the pre-verso export filename');
   assert(nightExport.includes('viewBox="0 0 400 400"')&&!nightExport.includes('class="duplex-back"'),
     'Pre-verso print must remain the single recto artifact');
+  assert(nightExport.includes('width="120mm" height="120mm"'),
+    'Single-face print lost its physical 120mm square scale');
   assert(!nightExport.includes('class="duplex-fold"'),'Pre-verso single-face night export leaked fold marks');
   assert.equal(await page.$$eval('script[src*="duplex-back.js?v=1"]',xs=>xs.length),1,'Duplex back template is missing');
   const duplexThroughOrigins=await page.evaluate(()=>{
@@ -762,6 +764,8 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(duplexName,'036js-night-duplex-impression.svg','Seen verso did not upgrade the physical print download');
   assert(duplexExport.includes('viewBox="0 0 840 400"')&&duplexExport.includes('class="duplex-front"')&&duplexExport.includes('class="duplex-back"'),
     'Third-read export is not the expected self-contained duplex sheet');
+  assert(duplexExport.includes('width="252mm" height="120mm"'),
+    'Duplex print lost its physical 252mm by 120mm print scale');
   assert.equal((duplexExport.match(/class="duplex-box"/g)||[]).length,18,'Duplex back must preserve all 5+13 public-profile regions');
   assert.equal((duplexExport.match(/class="duplex-origin"/g)||[]).length,2,'Duplex back lost the two v42 origin marks');
   assert.equal((duplexExport.match(/class="duplex-field"/g)||[]).length,2,'Duplex back needs exactly two profile source fields');
@@ -791,6 +795,8 @@ assert.equal(invalidSingleEval.length,0,
   const duplexPaper=await page.$eval('#impression-download',async a=>await (await fetch(a.href)).text());
   assert.equal(await page.$eval('#impression-download',a=>a.download),'036js-paper-duplex-impression.svg',
     'Paper edition lost duplex export naming');
+  assert(duplexPaper.includes('width="252mm" height="120mm"'),
+    'Paper duplex print lost the physical print scale');
   assert(duplexPaper.includes('#e6e2d7')&&duplexPaper.includes('#386770')&&duplexPaper.includes('#665577'),
     'Paper duplex export did not recolor both faces');
   assert.equal((duplexPaper.match(/class="duplex-fold"/g)||[]).length,1,
