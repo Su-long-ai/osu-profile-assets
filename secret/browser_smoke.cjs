@@ -105,8 +105,8 @@ assert.equal(invalidSingleEval.length,0,
     'Archive-contact client is missing');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Act-two metrics allowlist cache version is stale in archive room');
-  assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),7);
-  assert.equal(await page.$$eval('.hold-note[role="button"][tabindex="0"]',xs=>xs.length),7,'The visible long notes must be real accessible controls');
+  assert.equal(await page.$$eval('.roll g[fill="url(#hold)"] rect',xs=>xs.length),4,'Rhythm room must expose exactly the four long notes that encode the phrase');
+  assert.equal(await page.$$eval('.hold-note[role="button"][tabindex="0"]',xs=>xs.length),4,'The four visible long notes must be real accessible controls');
   assert.equal(await page.$$eval('[data-lane]',xs=>xs.length),7);
   const capInspect=await page.evaluate(()=>({
     caps:[...document.querySelectorAll('.key-cap')].map(x=>({x:x.getAttribute('x'),parent:x.parentElement?.dataset?.lane})),
@@ -173,7 +173,7 @@ assert.equal(invalidSingleEval.length,0,
   assert(await page.$eval('#key-progress',e=>e.hasAttribute('hidden')),'Completed progress should be replaced by final mark');
   assert.equal(await page.$$eval('.hold-note.accepted',xs=>xs.map(x=>x.dataset.hold).sort().join(',')),'D,F,J,K','Only the recovered four-note phrase should illuminate after completion');
   assert.equal(await page.$$eval('[data-lane][tabindex="-1"][aria-disabled="true"]',xs=>xs.length),7,'Solved rhythm lanes must leave the input tab order');
-  assert.equal(await page.$$eval('.hold-note[tabindex="-1"][aria-disabled="true"]',xs=>xs.length),7,'Solved rhythm notes must leave the input tab order');
+  assert.equal(await page.$$eval('.hold-note[tabindex="-1"][aria-disabled="true"]',xs=>xs.length),4,'Solved rhythm notes must leave the input tab order');
   assert(!(await page.$eval('#echo-play',e=>e.hidden)),'Post-solve audible memory must remain available');
   assert.equal(await page.$eval('[data-lane] rect',e=>getComputedStyle(e).cursor),'default','Solved rhythm lane still advertises pointer input');
   await open();
