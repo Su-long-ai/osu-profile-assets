@@ -26,6 +26,13 @@ function refresh(){
     else{link.tabIndex=-1;link.setAttribute('aria-disabled','true')}
   }
   const all=ready&&Object.values(done).every(Boolean);
+  const order=window.NBArtifactOrder?.order?.()||[];
+  document.querySelector('.verso-junction')?.setAttribute('data-order',order.join('-'));
+  relay?.querySelectorAll('.artifact-order-residue [data-artifact]').forEach(path=>{
+    path.classList.remove('order-1','order-2','order-3');
+    const i=order.indexOf(path.dataset.artifact);
+    if(i>=0)path.classList.add('order-'+(i+1));
+  });
   relay?.classList.toggle('available',all);
   if(relay){relay.tabIndex=all?0:-1;relay.setAttribute('aria-hidden',String(!all))}
 }

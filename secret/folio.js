@@ -56,7 +56,7 @@ const refreshDownload=()=>{
 refreshDownload();
 function renderFoldState(on){
   folio.classList.toggle('folded',on);
-  if(on)localStorage.setItem('nb036-artifact-v1:folio','1');
+  if(on){localStorage.setItem('nb036-artifact-v1:folio','1');window.NBArtifactOrder?.mark('folio')}
   hinge.setAttribute('aria-pressed',String(on));
   download.tabIndex=on?0:-1;
   download.setAttribute('aria-hidden',String(!on));

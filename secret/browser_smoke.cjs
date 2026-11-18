@@ -751,9 +751,10 @@ assert.equal(invalidSingleEval.length,0,
     'Unread verso axis focus leaked a transmitted registration preview');
   await page.click('#verso-entry');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
-  assert.equal(await page.$$eval('link[href*="verso.css?v=3"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('link[href*="verso.css?v=4"]',xs=>xs.length),1,
     'Profile verso did not pick up the nonlinear-junction stylesheet revision');
-  assert.equal(await page.$$eval('script[src*="verso.js?v=5"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Profile verso artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="verso.js?v=6"]',xs=>xs.length),1,
     'Profile-verso nonlinear-junction client cache version is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Profile-verso metrics cache version is stale');
@@ -791,7 +792,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('.artifact-folio');
   await page.waitForFunction(()=>location.pathname.endsWith('/folio.html')&&!document.querySelector('.folio-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="folio.css?v=2"]',xs=>xs.length),1,'Gatefold folio stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="folio.js?v=7"]',xs=>xs.length),1,'Gatefold folio client revision missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Gatefold artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="folio.js?v=8"]',xs=>xs.length),1,'Gatefold folio client revision missing');
   assert.equal(await page.$$eval('.folio-panel',xs=>xs.length),3,'Gatefold folio needs exactly two flaps and one recto panel');
   assert.equal(await page.$$eval('#folio-flex',xs=>xs.length),1,'Folded-only trihexaflexagon entry is missing');
   assert.equal(await page.$eval('#folio-flex',e=>e.tabIndex),-1,'Trihexaflexagon entry entered focus order before the folio was folded');
@@ -826,11 +828,12 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('.folio-screen',xs=>xs.length),1,'Optional registration-screen entry is missing');
   assert.equal(await page.$eval('.folio-screen',e=>e.getAttribute('href')),'./screen.html','Registration-screen route drifted');
   assert((await page.$eval('.folio-screen',e=>Number(getComputedStyle(e).opacity)))<=.2,'Registration-screen entry became visually loud before discovery');
-  const screenStateBefore=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v1:')).sort(([a],[b])=>a.localeCompare(b)))));
+  const screenStateBefore=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v')).sort(([a],[b])=>a.localeCompare(b)))));
   await page.click('.folio-screen');
   await page.waitForFunction(()=>location.pathname.endsWith('/screen.html')&&!document.querySelector('.screen-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="screen.css?v=2"]',xs=>xs.length),1,'Registration-screen stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="screen.js?v=5"]',xs=>xs.length),1,'Registration-screen client missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Registration-screen artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="screen.js?v=6"]',xs=>xs.length),1,'Registration-screen client missing');
   assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional registration screen must not load metrics');
   assert.equal(await page.$$eval('#screen-base .screen-grid path',xs=>xs.length),19,'Registration screen lost its base line field');
   assert.equal(await page.$$eval('#screen-base .screen-wing-grid path',xs=>xs.length),84,'Registration screen lost its four phase-shifted wing fields');
@@ -845,7 +848,7 @@ assert.equal(invalidSingleEval.length,0,
   await page.keyboard.press('Home');
   assert.equal(await page.$eval('#screen-plate',e=>e.getAttribute('aria-valuenow')),'0','Registration screen Home key did not reset the phase');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Registration screen overflows horizontally');
-  const screenStateAfter=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v1:')).sort(([a],[b])=>a.localeCompare(b)))));
+  const screenStateAfter=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v')).sort(([a],[b])=>a.localeCompare(b)))));
   assert.equal(screenStateAfter,screenStateBefore,'Registration screen mutated unrelated puzzle progress state');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-artifact-v1:screen')),'1','Registered screen did not leave its physical witness');
   await page.click('.breadcrumb');
@@ -892,7 +895,7 @@ assert.equal(invalidSingleEval.length,0,
     'Gatefold export leaked a raster or external dependency');
   assert(gatefoldExport.length<60000,'Gatefold vector artifact became unexpectedly heavy: '+gatefoldExport.length);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Gatefold folio overflows horizontally');
-  const flexStateBefore=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v1:')).sort(([a],[b])=>a.localeCompare(b)))));
+  const flexStateBefore=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v')).sort(([a],[b])=>a.localeCompare(b)))));
   await page.click('.breadcrumb');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('.artifact-folio.done',xs=>xs.length),1,'Returning from the gatefold did not illuminate its workbench witness');
@@ -900,7 +903,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('.artifact-flex');
   await page.waitForFunction(()=>location.pathname.endsWith('/flexagon.html')&&!document.querySelector('.flexagon-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="flexagon.css?v=4"]',xs=>xs.length),1,'Trihexaflexagon workbench stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="flexagon.js?v=7"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Trihexaflexagon artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="flexagon.js?v=8"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
   assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional trihexaflexagon branch must not load metrics');
   assert.equal(await page.$eval('#flex-print',e=>e.getAttribute('src')),null,'Inlined flexagon print unexpectedly regressed to an image source');
   await page.waitForFunction(()=>document.querySelector('#flex-print.ready')&&document.querySelectorAll('#flex-print [data-face]').length===18&&document.querySelector('#flex-download')?.href.startsWith('blob:'),{timeout:5000});
@@ -971,12 +975,15 @@ assert.equal(invalidSingleEval.length,0,
   assert.deepEqual(await flexPair(),['1','3','1'],'Keyboard flex did not cycle back to rooms/verso state');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Trihexaflexagon workbench overflows horizontally');
   assert(await page.$eval('#flex-download',e=>e.href.startsWith('blob:')),'Route-imprint export must remain the generated self-contained SVG rather than regress to the immutable blank net');
-  const flexStateAfter=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v1:')).sort(([a],[b])=>a.localeCompare(b)))));
+  const flexStateAfter=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v')).sort(([a],[b])=>a.localeCompare(b)))));
   assert.equal(flexStateAfter,flexStateBefore,'Trihexaflexagon mutated unrelated puzzle progress state');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-artifact-v1:flex')),'1','Seeing all three flexagon faces did not leave its physical witness');
   await page.click('.breadcrumb');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('.verso-artifact.done',xs=>xs.length),3,'Three physical artifacts did not preserve all three workbench witnesses');
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('nb036-artifact-v2:order')||'[]')),['screen','folio','flex'],'Physical artifact history no longer preserves first-completion order');
+  assert.equal(await page.$eval('.verso-junction',e=>e.dataset.order),'screen-folio-flex','Workbench did not project the stored artifact order into its physical residue');
+  assert.deepEqual(await page.$$eval('.artifact-order-residue [data-artifact]',xs=>xs.map(x=>[x.dataset.artifact,[...x.classList].find(c=>c.startsWith('order-'))||''])),[['folio','order-2'],['screen','order-1'],['flex','order-3']],'Relay residue no longer encodes the browser\'s physical completion order');
   assert.equal(await page.$$eval('.verso-relay.available',xs=>xs.length),1,'Three physical witnesses did not unlock the relay');
   assert.equal(await page.$eval('.verso-relay',e=>e.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Completed workbench relay no longer returns to the public profile');
   await page.click('.artifact-folio');

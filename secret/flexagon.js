@@ -80,8 +80,8 @@ fetch(asset).then(r=>{if(!r.ok)throw new Error('flexagon print');return r.text()
  exportUrl=URL.createObjectURL(new Blob([serialized],{type:'image/svg+xml'}));download.href=exportUrl;
  render();
 }).catch(()=>location.replace('./verso.html'));
-document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;seenFaces.add(topCycle[index]);localStorage.setItem('nb036-artifact-v1:flex-faces',JSON.stringify([...seenFaces]));if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}render()});
-if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}
+document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;seenFaces.add(topCycle[index]);localStorage.setItem('nb036-artifact-v1:flex-faces',JSON.stringify([...seenFaces]));if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');window.NBArtifactOrder?.mark('flex');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}render()});
+if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');window.NBArtifactOrder?.mark('flex');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}
 addEventListener('pagehide',()=>{if(exportUrl)URL.revokeObjectURL(exportUrl)});
 render();document.querySelector('.flexagon-stage').hidden=false;
 })();
