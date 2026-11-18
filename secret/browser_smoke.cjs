@@ -903,6 +903,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('script[src*="flexagon.js?v=7"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
   assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional trihexaflexagon branch must not load metrics');
   assert.equal(await page.$eval('#flex-print',e=>e.getAttribute('src')),null,'Inlined flexagon print unexpectedly regressed to an image source');
+  await page.waitForFunction(()=>document.querySelector('#flex-print.ready')&&document.querySelectorAll('#flex-print [data-face]').length===18&&document.querySelector('#flex-download')?.href.startsWith('blob:'),{timeout:5000});
   assert.equal(await page.$eval('#flex-download',e=>e.getAttribute('download')),'036js-night-trihexaflexagon-route.svg','Trihexaflexagon route-imprint download naming drifted');
   const flexExport=await page.$eval('#flex-download',async a=>await (await fetch(a.href)).text());
   assert(flexExport.includes('width="190mm" height="132mm"'),'Trihexaflexagon print sheet lost its physical dimensions');
@@ -927,7 +928,6 @@ assert.equal(invalidSingleEval.length,0,
     return [1,2,3].map(f=>[...d.querySelectorAll('[data-face="'+f+'"] .magic-grain')].reduce((a,g)=>a+Number(g.dataset.weight),0));
   },flexExport);
   assert.deepEqual(grainTotals,[21,21,21],'Trihexaflexagon material checksum no longer balances all three semantic faces');
-  await page.waitForFunction(()=>document.querySelector('#flex-print.ready')&&document.querySelectorAll('#flex-print [data-face]').length===18,{timeout:5000});
   assert.equal(await page.$$eval('#flex-print>svg',xs=>xs.length),1,'Trihexaflexagon printable net was not inlined for provenance inspection');
   assert.deepEqual(await page.$$eval('#flex-print [data-face="1"],#flex-print [data-face="2"],#flex-print [data-face="3"]',xs=>{
     const counts=[1,2,3].map(f=>xs.filter(x=>Number(x.dataset.face)===f).length);return counts;
@@ -950,7 +950,12 @@ assert.equal(invalidSingleEval.length,0,
   await page.$eval('#flex-download',e=>e.focus());
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(()=>document.activeElement?.id),'flex-pin','Keyboard tab did not reach the flex axis');
-  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('#flex-under-art')).opacity)>=.48&&Number(getComputedStyle(document.querySelector('#flex-print .net-bottom')).opacity)>=.45,{timeout:600});
+  await page.waitForFunction(()=>{
+    const top=[...document.querySelectorAll('#flex-print .net-top')].map(x=>Number(getComputedStyle(x).opacity));
+    const bottom=[...document.querySelectorAll('#flex-print .net-bottom')].map(x=>Number(getComputedStyle(x).opacity));
+    const other=[...document.querySelectorAll('#flex-print [data-face]:not(.net-top):not(.net-bottom)')].map(x=>Number(getComputedStyle(x).opacity));
+    return Number(getComputedStyle(document.querySelector('#flex-under-art')).opacity)>=.48&&top.every(x=>x>=.95)&&bottom.every(x=>x>=.45&&x<=.6)&&other.every(x=>x<=.2);
+  },{timeout:900});
   const underFocus=await page.$eval('#flex-under-art',e=>Number(getComputedStyle(e).opacity));
   assert(underFocus>=.48,'Keyboard focus on the flex axis did not expose the underside enough to read its paired face');
   const grainFocus=await page.$eval('#flex-face-art .flex-face.active .magic-grain',e=>Number(getComputedStyle(e).opacity));
