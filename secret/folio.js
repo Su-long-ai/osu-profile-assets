@@ -17,7 +17,7 @@ const recolor=source=>localStorage.getItem('nb036-impression-v2:edition')==='pap
 document.querySelector('#folio-left').innerHTML=recolor(window.NBDuplexBack.svg);
 document.querySelector('#folio-center').innerHTML=recolor(front);
 document.querySelector('#folio-right').innerHTML=recolor(window.NBDuplexBack.svg);
-const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge'),download=document.querySelector('#folio-download');
+const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge'),download=document.querySelector('#folio-download'),flex=document.querySelector('#folio-flex');
 const edition=localStorage.getItem('nb036-impression-v2:edition')==='paper'?'paper':'night';
 const color=Object.fromEntries(parts.map(p=>[p.id,p.color]));
 const routeTicks=(list,x0,y0)=>{
@@ -66,6 +66,8 @@ hinge.addEventListener('click',()=>{
   hinge.setAttribute('aria-pressed',String(on));
   download.tabIndex=on?0:-1;
   download.setAttribute('aria-hidden',String(!on));
+  flex.tabIndex=on?0:-1;
+  flex.setAttribute('aria-hidden',String(!on));
 });
 addEventListener('pagehide',()=>{if(exportUrl)URL.revokeObjectURL(exportUrl)});
 document.querySelector('.folio-stage').hidden=false;

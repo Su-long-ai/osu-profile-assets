@@ -782,8 +782,11 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('.verso-register');
   await page.waitForFunction(()=>location.pathname.endsWith('/folio.html')&&!document.querySelector('.folio-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="folio.css?v=1"]',xs=>xs.length),1,'Gatefold folio stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="folio.js?v=3"]',xs=>xs.length),1,'Gatefold folio route-comparison client revision missing');
+  assert.equal(await page.$$eval('script[src*="folio.js?v=4"]',xs=>xs.length),1,'Gatefold folio flexagon-entry client revision missing');
   assert.equal(await page.$$eval('.folio-panel',xs=>xs.length),3,'Gatefold folio needs exactly two flaps and one recto panel');
+  assert.equal(await page.$$eval('#folio-flex',xs=>xs.length),1,'Folded-only trihexaflexagon entry is missing');
+  assert.equal(await page.$eval('#folio-flex',e=>e.tabIndex),-1,'Trihexaflexagon entry entered focus order before the folio was folded');
+  assert.equal(await page.$eval('#folio-flex',e=>e.getAttribute('aria-hidden')),'true','Trihexaflexagon entry exposed itself before the folio was folded');
   assert.equal(await page.$$eval('.folio-route-signature.room-route path',xs=>xs.length),4,'Gatefold first-act route comparison needs four ticks');
   assert.equal(await page.$$eval('.folio-route-signature.contact-route path',xs=>xs.length),4,'Gatefold second-act route comparison needs four ticks');
   const routeColorById={keys:'#9cc4c9',dates:'#b7adcb',mirror:'#a6c7ce',margin:'#bba8c9'};
@@ -817,6 +820,9 @@ assert.equal(invalidSingleEval.length,0,
   assert.notEqual(await page.$eval('.folio-right',e=>getComputedStyle(e).transform),'none','Right gate did not fold');
   assert.equal(await page.$eval('#folio-download',e=>e.tabIndex),0,'Folded folio did not reveal the physical export');
   assert.equal(await page.$eval('#folio-download',e=>e.getAttribute('aria-hidden')),'false','Folded folio export stayed hidden from accessibility');
+  assert.equal(await page.$eval('#folio-flex',e=>e.tabIndex),0,'Folded folio did not reveal the optional trihexaflexagon branch');
+  assert.equal(await page.$eval('#folio-flex',e=>e.getAttribute('aria-hidden')),'false','Folded folio trihexaflexagon branch stayed hidden from accessibility');
+  assert.equal(await page.$eval('#folio-flex',e=>e.getAttribute('href')),'./flexagon.html','Trihexaflexagon branch route drifted');
   assert.equal(await page.$eval('#folio-download',e=>e.download),'036js-night-gatefold.svg','Night gatefold export naming drifted');
   const gatefoldExport=await page.$eval('#folio-download',async a=>await (await fetch(a.href)).text());
   assert(gatefoldExport.includes('viewBox="0 0 800 400"')&&gatefoldExport.includes('width="240mm" height="120mm"'),
@@ -844,6 +850,43 @@ assert.equal(invalidSingleEval.length,0,
     'Gatefold export leaked a raster or external dependency');
   assert(gatefoldExport.length<60000,'Gatefold vector artifact became unexpectedly heavy: '+gatefoldExport.length);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Gatefold folio overflows horizontally');
+  const flexStateBefore=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')).sort(([a],[b])=>a.localeCompare(b)))));
+  await page.click('#folio-flex');
+  await page.waitForFunction(()=>location.pathname.endsWith('/flexagon.html')&&!document.querySelector('.flexagon-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('link[href*="flexagon.css?v=1"]',xs=>xs.length),1,'Trihexaflexagon workbench stylesheet missing');
+  assert.equal(await page.$$eval('script[src*="flexagon.js?v=1"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
+  assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional trihexaflexagon branch must not load metrics');
+  assert.equal(await page.$eval('#flex-print',e=>e.getAttribute('src')),'./036js-flexagon-night.svg','Night flexagon workbench selected the wrong print artifact');
+  assert.equal(await page.$eval('#flex-download',e=>e.getAttribute('download')),'036js-night-trihexaflexagon.svg','Trihexaflexagon download naming drifted');
+  const flexExport=await page.$eval('#flex-download',async a=>await (await fetch(a.href)).text());
+  assert(flexExport.includes('width="190mm" height="132mm"'),'Trihexaflexagon print sheet lost its physical dimensions');
+  assert.equal((flexExport.match(/data-row="top"/g)||[]).length,10,'Trihexaflexagon print sheet lost its ten top triangles');
+  assert.equal((flexExport.match(/data-row="bottom"/g)||[]).length,8,'Trihexaflexagon print sheet lost its eight lower triangles');
+  assert(!flexExport.includes('<text')&&!flexExport.includes('<image')&&!flexExport.includes('href='),
+    'Trihexaflexagon print sheet must stay text-free, raster-free, and self-contained');
+  const flexTopology=await page.evaluate(svg=>{
+    const d=new DOMParser().parseFromString(svg,'image/svg+xml');
+    return {
+      top:[...d.querySelectorAll('[data-row="top"]')].map(x=>Number(x.dataset.face)),
+      bottom:[...d.querySelectorAll('[data-row="bottom"]')].map(x=>Number(x.dataset.face))
+    };
+  },flexExport);
+  assert.deepEqual(flexTopology.top,[3,1,1,2,2,3,3,1,1,2],'Trihexaflexagon top-row classic topology drifted');
+  assert.deepEqual(flexTopology.bottom,[2,3,3,1,1,2,2,3],'Trihexaflexagon lower-row classic topology drifted');
+  assert.equal(await page.$$eval('.flex-face',xs=>xs.length),3,'Trihexaflexagon simulator needs exactly three semantic faces');
+  assert.equal(await page.$eval('#flex-pin',e=>e.dataset.face),'1','Trihexaflexagon simulator must start on fragments/rooms');
+  await page.click('#flex-pin');assert.equal(await page.$eval('#flex-pin',e=>e.dataset.face),'3','First flex did not reveal the profile-verso face');
+  await page.click('#flex-pin');assert.equal(await page.$eval('#flex-pin',e=>e.dataset.face),'2','Second flex did not reveal the registration face');
+  await page.$eval('#flex-pin',e=>e.focus());await page.keyboard.press('Enter');
+  assert.equal(await page.$eval('#flex-pin',e=>e.dataset.face),'1','Keyboard flex did not cycle back to fragments/rooms');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Trihexaflexagon workbench overflows horizontally');
+  const flexStateAfter=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')).sort(([a],[b])=>a.localeCompare(b)))));
+  assert.equal(flexStateAfter,flexStateBefore,'Optional trihexaflexagon workbench mutated puzzle progress state');
+  await page.click('.breadcrumb');
+  await page.waitForFunction(()=>location.pathname.endsWith('/folio.html')&&!document.querySelector('.folio-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$eval('#folio-flex',e=>e.tabIndex),-1,'Returning from trihexaflexagon should reopen the folio rather than preserve a hidden fold state');
+  await page.click('#folio-hinge');
+  assert.equal(await page.$eval('#folio-hinge',e=>e.getAttribute('aria-pressed')),'true','Gatefold did not refold after returning from trihexaflexagon');
   await page.$eval('#folio-hinge',e=>e.focus());await page.keyboard.press('Enter');
   assert.equal(await page.$eval('#folio-hinge',e=>e.getAttribute('aria-pressed')),'false','Gatefold hinge is not keyboard-reversible');
   await page.click('.breadcrumb');
