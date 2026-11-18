@@ -7,11 +7,16 @@ const edition=localStorage.getItem('nb036-impression-v2:edition')==='paper'?'pap
 const asset='./036js-flexagon-'+edition+'.svg';
 const image=document.querySelector('#flex-print'),download=document.querySelector('#flex-download');
 image.src=asset;download.href=asset;download.download='036js-'+edition+'-trihexaflexagon.svg';
-const cycle=[1,3,2];let index=0;
+const topCycle=[1,3,2],bottomCycle=[3,2,1];let index=0;
+const main=document.querySelector('#flex-face-art'),under=document.querySelector('#flex-under-art');
+under.innerHTML=main.innerHTML;
 const render=()=>{
- document.querySelectorAll('.flex-face').forEach(x=>x.classList.toggle('active',Number(x.dataset.face)===cycle[index]));
- document.querySelector('#flex-pin').dataset.face=String(cycle[index]);
+ const top=topCycle[index],bottom=bottomCycle[index];
+ main.querySelectorAll('.flex-face').forEach(x=>x.classList.toggle('active',Number(x.dataset.face)===top));
+ under.querySelectorAll('.flex-face').forEach(x=>x.classList.toggle('active',Number(x.dataset.face)===bottom));
+ const pin=document.querySelector('#flex-pin');
+ pin.dataset.face=String(top);pin.dataset.topFace=String(top);pin.dataset.bottomFace=String(bottom);
 };
-document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%cycle.length;render()});
+document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;render()});
 render();document.querySelector('.flexagon-stage').hidden=false;
 })();
