@@ -91,7 +91,7 @@ assert.equal(invalidSingleEval.length,0,
     'Gallery cards themselves must stay still');
   const galleryCueNames=await page.evaluate(()=>[
     getComputedStyle(document.querySelector('.tile-a .thumb-holds')).animationName,
-    getComputedStyle(document.querySelector('.tile-b svg>circle')).animationName,
+    getComputedStyle(document.querySelector('.tile-b .thumb-archive-rows circle')).animationName,
     getComputedStyle(document.querySelector('.tile-c .thumb-axis')).animationName,
     getComputedStyle(document.querySelector('.tile-d .thumb-ink')).animationName
   ]);
