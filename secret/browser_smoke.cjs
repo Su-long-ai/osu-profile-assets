@@ -903,7 +903,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('script[src*="flexagon.js?v=7"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
   assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional trihexaflexagon branch must not load metrics');
   assert.equal(await page.$eval('#flex-print',e=>e.getAttribute('src')),null,'Inlined flexagon print unexpectedly regressed to an image source');
-  assert.equal(await page.$eval('#flex-download',e=>e.getAttribute('download')),'036js-night-trihexaflexagon.svg','Trihexaflexagon download naming drifted');
+  assert.equal(await page.$eval('#flex-download',e=>e.getAttribute('download')),'036js-night-trihexaflexagon-route.svg','Trihexaflexagon route-imprint download naming drifted');
   const flexExport=await page.$eval('#flex-download',async a=>await (await fetch(a.href)).text());
   assert(flexExport.includes('width="190mm" height="132mm"'),'Trihexaflexagon print sheet lost its physical dimensions');
   assert.equal((flexExport.match(/data-row="top"/g)||[]).length,10,'Trihexaflexagon print sheet lost its ten top triangles');
