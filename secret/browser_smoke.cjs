@@ -906,6 +906,8 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$eval('#flex-download',e=>e.getAttribute('download')),'036js-night-trihexaflexagon-route.svg','Trihexaflexagon route-imprint download naming drifted');
   const flexExport=await page.$eval('#flex-download',async a=>await (await fetch(a.href)).text());
   assert(flexExport.includes('width="190mm" height="132mm"'),'Trihexaflexagon print sheet lost its physical dimensions');
+  assert.equal((flexExport.match(/class="route-room"/g)||[]).length,4,'Trihexaflexagon route imprint lost room history');
+  assert.equal((flexExport.match(/class="route-contact"/g)||[]).length,4,'Trihexaflexagon route imprint lost contact history');
   assert.equal((flexExport.match(/data-row="top"/g)||[]).length,10,'Trihexaflexagon print sheet lost its ten top triangles');
   assert.equal((flexExport.match(/data-row="bottom"/g)||[]).length,8,'Trihexaflexagon print sheet lost its eight lower triangles');
   assert.equal((flexExport.match(/class="magic-grain"/g)||[]).length,18,'Trihexaflexagon material checksum lost one or more triangle grains');
@@ -963,7 +965,7 @@ assert.equal(invalidSingleEval.length,0,
   await page.keyboard.press('Enter');
   assert.deepEqual(await flexPair(),['1','3','1'],'Keyboard flex did not cycle back to rooms/verso state');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Trihexaflexagon workbench overflows horizontally');
-  assert.equal(await page.$eval('#flex-download',e=>e.getAttribute('href')),'./036js-flexagon-night.svg','Provenance preview must not replace the immutable print download');
+  assert(await page.$eval('#flex-download',e=>e.href.startsWith('blob:')),'Route-imprint export must remain the generated self-contained SVG rather than regress to the immutable blank net');
   const flexStateAfter=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v1:')).sort(([a],[b])=>a.localeCompare(b)))));
   assert.equal(flexStateAfter,flexStateBefore,'Trihexaflexagon mutated unrelated puzzle progress state');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-artifact-v1:flex')),'1','Seeing all three flexagon faces did not leave its physical witness');
