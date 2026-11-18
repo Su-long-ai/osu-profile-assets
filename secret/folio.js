@@ -17,7 +17,7 @@ const recolor=source=>route.recolor(source,edition);
 document.querySelector('#folio-left').innerHTML=recolor(window.NBDuplexBack.svg);
 document.querySelector('#folio-center').innerHTML=recolor(front);
 document.querySelector('#folio-right').innerHTML=recolor(window.NBDuplexBack.svg);
-const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge'),download=document.querySelector('#folio-download'),flex=document.querySelector('#folio-flex');
+const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge'),download=document.querySelector('#folio-download'),flex=document.querySelector('#folio-flex'),screen=document.querySelector('.folio-screen');
 const routeTicks=(list,x0,y0)=>list.map((id,i)=>'<path d="M'+x0+' '+(y0+i*10)+'h4" stroke="'+route.color(id,edition)+'" stroke-width=".9" stroke-linecap="round"/>').join('');
 const roomRoute=route.order('nb036-route-v1:rooms'),contactRoute=route.order('nb036-route-v1:contacts');
 const routeSignature='<g class="gatefold-route-signature" fill="none" opacity=".72">'+
@@ -54,14 +54,21 @@ const refreshDownload=()=>{
   download.href=exportUrl;download.download='036js-'+edition+'-gatefold.svg';
 };
 refreshDownload();
-hinge.addEventListener('click',()=>{
-  const on=folio.classList.toggle('folded');
+function renderFoldState(on){
+  folio.classList.toggle('folded',on);
   hinge.setAttribute('aria-pressed',String(on));
   download.tabIndex=on?0:-1;
   download.setAttribute('aria-hidden',String(!on));
   flex.tabIndex=on?0:-1;
   flex.setAttribute('aria-hidden',String(!on));
-});
+  // The registration screen is a transparent overlay for the open triptych.
+  // Once folded, it is physically removed from the active surface rather than
+  // remaining an invisible keyboard-only link beneath the folded panels.
+  screen.tabIndex=on?-1:0;
+  screen.setAttribute('aria-hidden',String(on));
+}
+renderFoldState(false);
+hinge.addEventListener('click',()=>renderFoldState(!folio.classList.contains('folded')));
 addEventListener('pagehide',()=>{if(exportUrl)URL.revokeObjectURL(exportUrl)});
 document.querySelector('.folio-stage').hidden=false;
 })();
