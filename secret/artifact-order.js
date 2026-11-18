@@ -30,5 +30,7 @@ const mark=id=>{
   }
   return order.slice();
 };
-window.NBArtifactOrder={ids:ids.slice(),order:()=>read().slice(),mark};
+const weights=[{opacity:.96,width:1.7},{opacity:.66,width:1.15},{opacity:.38,width:.8}];
+const marks=()=>read().map((id,i)=>({id,rank:i+1,opacity:weights[i].opacity,width:weights[i].width}));
+window.NBArtifactOrder={ids:ids.slice(),order:()=>read().slice(),marks,mark};
 })();

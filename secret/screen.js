@@ -22,9 +22,22 @@ base.insertAdjacentHTML('beforeend','<g class="screen-film-register" opacity=".4
 const exportReg=(x,y)=>'<g class="registration"><circle cx="'+x+'" cy="'+y+'" r="5.5"/><path d="M'+(x-9)+' '+y+'h3m12 0h3M'+x+' '+(y-9)+'v3m0 12v3"/><circle class="core" cx="'+x+'" cy="'+y+'" r="1.2"/></g>';
 const exportBars=Array.from({length:22},(_,i)=>'<rect x="'+(4+i*20)+'" y="42" width="12" height="316"/>').join('');
 const exportRoute='<g class="screen-route-signature" fill="none" opacity=".86">'+routeTicks(roomRoute,0,'screen-room-route')+routeTicks(contactRoute,396,'screen-contact-route')+'</g>';
-const exportSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="120mm" height="120mm"><g fill="#05070a">'+exportBars+'</g><g fill="none" stroke="#111820" stroke-width=".7"><rect x="38" y="28" width="344" height="344"/></g><g fill="none" stroke="#111820" stroke-width=".75">'+exportReg(50,52)+exportReg(350,348)+'</g>'+exportRoute+'<g fill="none" stroke="#111820" stroke-width=".55" opacity=".8"><path d="M0 16h18M16 0v18M382 0v18M382 16h18M0 384h18M16 382v18M382 382v18M382 384h18"/></g></svg>';
-let exportUrl=URL.createObjectURL(new Blob([exportSvg],{type:'image/svg+xml'}));
-download.href=exportUrl;download.download='036js-'+edition+'-registration-screen-route.svg';
+const orderInk=edition==='paper'?'#65706d':'#8198a2';
+const artifactResidue=()=>{
+ const pos={folio:[188,18,4,4],screen:[200,18,-4,4],flex:[212,18,4,-4]};
+ const marks=window.NBArtifactOrder?.marks?.()||[];
+ return '<g class="artifact-order-imprint" fill="none" stroke-linecap="round">'+marks.map(m=>{const [x,y,dx,dy]=pos[m.id];return '<path data-artifact="'+m.id+'" data-order="'+m.rank+'" d="M'+x+' '+y+'l'+dx+' '+dy+'" stroke="'+orderInk+'" stroke-width="'+m.width+'" opacity="'+m.opacity+'"/>';}).join('')+'</g>';
+};
+const exportSvg=()=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="120mm" height="120mm"><g fill="#05070a">'+exportBars+'</g><g fill="none" stroke="#111820" stroke-width=".7"><rect x="38" y="28" width="344" height="344"/></g><g fill="none" stroke="#111820" stroke-width=".75">'+exportReg(50,52)+exportReg(350,348)+'</g>'+exportRoute+artifactResidue()+'<g fill="none" stroke="#111820" stroke-width=".55" opacity=".8"><path d="M0 16h18M16 0v18M382 0v18M382 16h18M0 384h18M16 382v18M382 382v18M382 384h18"/></g></svg>';
+let exportUrl='',exportOrderKey='';
+const refreshExport=()=>{
+ const key=(window.NBArtifactOrder?.order?.()||[]).join('-');
+ if(exportUrl&&key===exportOrderKey)return;
+ if(exportUrl)URL.revokeObjectURL(exportUrl);
+ exportUrl=URL.createObjectURL(new Blob([exportSvg()],{type:'image/svg+xml'}));
+ exportOrderKey=key;download.href=exportUrl;download.download='036js-'+edition+'-registration-screen-route.svg';download.dataset.artifactOrder=key;
+};
+refreshExport();
 download.dataset.roomRoute=roomRoute.join('-');download.dataset.contactRoute=contactRoute.join('-');
 const moving=document.querySelector('#screen-film-move');
 let phase=0,drag=null;
@@ -34,7 +47,7 @@ const render=()=>{
  moving.setAttribute('transform','translate('+phase+' 0)');
  plate.setAttribute('aria-valuenow',String(Math.round(phase)));
  const on=registered();
- if(on){localStorage.setItem('nb036-artifact-v1:screen','1');window.NBArtifactOrder?.mark('screen')}
+ if(on){localStorage.setItem('nb036-artifact-v1:screen','1');window.NBArtifactOrder?.mark('screen');refreshExport()}
  plate.classList.toggle('registered',on);download.classList.toggle('ready',on);
  download.tabIndex=on?0:-1;download.setAttribute('aria-hidden',String(!on));
 };

@@ -52,6 +52,23 @@ const addRouteImprint=root=>{
  seam.append(a,b);g.prepend(seam);net.appendChild(g);
  return g.querySelectorAll('.route-room').length+g.querySelectorAll('.route-contact').length;
 };
+const syncOrderImprint=root=>{
+ const old=root.querySelector('.artifact-order-imprint');if(old)old.remove();
+ const marks=window.NBArtifactOrder?.marks?.()||[];if(!marks.length)return 0;
+ const ns='http://www.w3.org/2000/svg',g=document.createElementNS(ns,'g');
+ g.setAttribute('class','artifact-order-imprint');g.setAttribute('fill','none');g.setAttribute('stroke-linecap','round');
+ const pos={folio:[350,274,4,4],screen:[368,274,-4,4],flex:[386,274,4,-4]},ink=edition==='paper'?'#65706d':'#8198a2';
+ marks.forEach(m=>{const [x,y,dx,dy]=pos[m.id],p=document.createElementNS(ns,'path');p.dataset.artifact=m.id;p.dataset.order=String(m.rank);p.setAttribute('d','M'+x+' '+y+'l'+dx+' '+dy);p.setAttribute('stroke',ink);p.setAttribute('stroke-width',String(m.width));p.setAttribute('opacity',String(m.opacity));g.append(p)});
+ root.append(g);return marks.length;
+};
+const refreshExport=()=>{
+ const root=print.querySelector(':scope > svg')||print.querySelector('svg');if(!root)return;
+ syncOrderImprint(root);
+ const serialized=new XMLSerializer().serializeToString(root);
+ if(/<script|<image|href=/i.test(serialized))throw new Error('flexagon route purity');
+ if(exportUrl)URL.revokeObjectURL(exportUrl);
+ exportUrl=URL.createObjectURL(new Blob([serialized],{type:'image/svg+xml'}));download.href=exportUrl;download.dataset.artifactOrder=(window.NBArtifactOrder?.order?.()||[]).join('-');
+};
 const markNet=(top,bottom)=>{
  print.querySelectorAll('[data-face]').forEach(x=>{
   const face=Number(x.dataset.face);
@@ -73,14 +90,13 @@ fetch(asset).then(r=>{if(!r.ok)throw new Error('flexagon print');return r.text()
  const root=doc.documentElement;
  if(root.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror'))throw new Error('flexagon svg parse');
  if(addRouteImprint(root)!==8)throw new Error('flexagon route imprint');
+ syncOrderImprint(root);
  const serialized=new XMLSerializer().serializeToString(root);
  if(/<script|<image|href=/i.test(serialized))throw new Error('flexagon route purity');
  print.innerHTML=serialized;print.dataset.roomRoute=roomRoute.join('-');print.dataset.contactRoute=contactRoute.join('-');
- print.classList.add('ready');
- exportUrl=URL.createObjectURL(new Blob([serialized],{type:'image/svg+xml'}));download.href=exportUrl;
- render();
+ print.classList.add('ready');refreshExport();render();
 }).catch(()=>location.replace('./verso.html'));
-document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;seenFaces.add(topCycle[index]);localStorage.setItem('nb036-artifact-v1:flex-faces',JSON.stringify([...seenFaces]));if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');window.NBArtifactOrder?.mark('flex');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}render()});
+document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;seenFaces.add(topCycle[index]);localStorage.setItem('nb036-artifact-v1:flex-faces',JSON.stringify([...seenFaces]));if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');window.NBArtifactOrder?.mark('flex');refreshExport();document.querySelector('.flexagon-stage')?.classList.add('witnessed')}render()});
 if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');window.NBArtifactOrder?.mark('flex');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}
 addEventListener('pagehide',()=>{if(exportUrl)URL.revokeObjectURL(exportUrl)});
 render();document.querySelector('.flexagon-stage').hidden=false;

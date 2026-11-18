@@ -20,6 +20,12 @@ document.querySelector('#folio-right').innerHTML=recolor(window.NBDuplexBack.svg
 const folio=document.querySelector('#folio'),hinge=document.querySelector('#folio-hinge'),download=document.querySelector('#folio-download'),flex=document.querySelector('#folio-flex'),screen=document.querySelector('.folio-screen');
 const routeTicks=(list,x0,y0)=>list.map((id,i)=>'<path d="M'+x0+' '+(y0+i*10)+'h4" stroke="'+route.color(id,edition)+'" stroke-width=".9" stroke-linecap="round"/>').join('');
 const roomRoute=route.order('nb036-route-v1:rooms'),contactRoute=route.order('nb036-route-v1:contacts');
+const orderInk=edition==='paper'?'#65706d':'#8198a2';
+const artifactResidue=(x0,y0)=>{
+  const pos={folio:[-12,0,4,4],screen:[0,0,-4,4],flex:[12,0,4,-4]};
+  const marks=window.NBArtifactOrder?.marks?.()||[];
+  return '<g class="artifact-order-imprint" fill="none" stroke-linecap="round">'+marks.map(m=>{const [x,y,dx,dy]=pos[m.id];return '<path data-artifact="'+m.id+'" data-order="'+m.rank+'" d="M'+(x0+x)+' '+(y0+y)+'l'+dx+' '+dy+'" stroke="'+orderInk+'" stroke-width="'+m.width+'" opacity="'+m.opacity+'"/>';}).join('')+'</g>';
+};
 const routeSignature='<g class="gatefold-route-signature" fill="none" opacity=".72">'+
   routeTicks(roomRoute,204,78)+routeTicks(contactRoute,608,78)+'</g>';
 const appendPreviewSignature=()=>{
@@ -46,7 +52,7 @@ const gatefoldSvg=()=>{
     '<defs><clipPath id="gate-selected"><rect x="0" y="0" width="208" height="400"/></clipPath><clipPath id="gate-shared"><rect x="608" y="0" width="192" height="400"/></clipPath></defs>'+
     '<g class="gatefold-selected" clip-path="url(#gate-selected)"><g transform="translate(-192 0)">'+backFace+'</g></g>'+
     '<g class="gatefold-front" transform="translate(208 0)">'+frontFace+'</g>'+
-    '<g class="gatefold-shared" clip-path="url(#gate-shared)"><g transform="translate(608 0)">'+backFace+'</g></g>'+foldMarks+routeSignature+'</svg>';
+    '<g class="gatefold-shared" clip-path="url(#gate-shared)"><g transform="translate(608 0)">'+backFace+'</g></g>'+foldMarks+routeSignature+artifactResidue(400,378)+'</svg>';
 };
 const refreshDownload=()=>{
   if(exportUrl)URL.revokeObjectURL(exportUrl);
@@ -56,7 +62,7 @@ const refreshDownload=()=>{
 refreshDownload();
 function renderFoldState(on){
   folio.classList.toggle('folded',on);
-  if(on){localStorage.setItem('nb036-artifact-v1:folio','1');window.NBArtifactOrder?.mark('folio')}
+  if(on){localStorage.setItem('nb036-artifact-v1:folio','1');window.NBArtifactOrder?.mark('folio');refreshDownload();download.dataset.artifactOrder=(window.NBArtifactOrder?.order?.()||[]).join('-')}
   hinge.setAttribute('aria-pressed',String(on));
   download.tabIndex=on?0:-1;
   download.setAttribute('aria-hidden',String(!on));

@@ -753,7 +753,7 @@ assert.equal(invalidSingleEval.length,0,
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="verso.css?v=4"]',xs=>xs.length),1,
     'Profile verso did not pick up the nonlinear-junction stylesheet revision');
-  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Profile verso artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=2"]',xs=>xs.length),1,'Profile verso artifact-history module missing');
   assert.equal(await page.$$eval('script[src*="verso.js?v=6"]',xs=>xs.length),1,
     'Profile-verso nonlinear-junction client cache version is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
@@ -792,8 +792,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('.artifact-folio');
   await page.waitForFunction(()=>location.pathname.endsWith('/folio.html')&&!document.querySelector('.folio-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="folio.css?v=2"]',xs=>xs.length),1,'Gatefold folio stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Gatefold artifact-history module missing');
-  assert.equal(await page.$$eval('script[src*="folio.js?v=8"]',xs=>xs.length),1,'Gatefold folio client revision missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=2"]',xs=>xs.length),1,'Gatefold artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="folio.js?v=9"]',xs=>xs.length),1,'Gatefold folio client revision missing');
   assert.equal(await page.$$eval('.folio-panel',xs=>xs.length),3,'Gatefold folio needs exactly two flaps and one recto panel');
   assert.equal(await page.$$eval('#folio-flex',xs=>xs.length),1,'Folded-only trihexaflexagon entry is missing');
   assert.equal(await page.$eval('#folio-flex',e=>e.tabIndex),-1,'Trihexaflexagon entry entered focus order before the folio was folded');
@@ -832,8 +832,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('.folio-screen');
   await page.waitForFunction(()=>location.pathname.endsWith('/screen.html')&&!document.querySelector('.screen-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="screen.css?v=2"]',xs=>xs.length),1,'Registration-screen stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Registration-screen artifact-history module missing');
-  assert.equal(await page.$$eval('script[src*="screen.js?v=6"]',xs=>xs.length),1,'Registration-screen client missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=2"]',xs=>xs.length),1,'Registration-screen artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="screen.js?v=7"]',xs=>xs.length),1,'Registration-screen client missing');
   assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional registration screen must not load metrics');
   assert.equal(await page.$$eval('#screen-base .screen-grid path',xs=>xs.length),19,'Registration screen lost its base line field');
   assert.equal(await page.$$eval('#screen-base .screen-wing-grid path',xs=>xs.length),84,'Registration screen lost its four phase-shifted wing fields');
@@ -843,6 +843,10 @@ assert.equal(invalidSingleEval.length,0,
   for(let i=0;i<10;i++)await page.keyboard.press('ArrowRight');
   assert.equal(await page.$eval('#screen-plate',e=>e.getAttribute('aria-valuenow')),'10','Registration screen did not reach the reveal phase by keyboard');
   assert.equal(await page.$eval('#screen-film-move',e=>e.getAttribute('transform')),'translate(10 0)','Registration film did not move to the reveal phase');
+  assert.equal(await page.$eval('#screen-download',e=>e.dataset.artifactOrder),'screen','Registration-screen export did not bind its first-completion residue');
+  const screenExport=await page.$eval('#screen-download',async a=>await (await fetch(a.href)).text());
+  const screenResidue=await page.evaluate(svg=>{const d=new DOMParser().parseFromString(svg,'image/svg+xml');return [...d.querySelectorAll('.artifact-order-imprint path')].map(x=>[x.dataset.artifact,x.dataset.order]);},screenExport);
+  assert.deepEqual(screenResidue,[['screen','1']],'Registration-screen print did not preserve its first-completion residue');
   await page.keyboard.press('End');
   assert.equal(await page.$eval('#screen-plate',e=>e.getAttribute('aria-valuenow')),'20','Registration screen End key did not reach the far phase');
   await page.keyboard.press('Home');
@@ -877,6 +881,8 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal((gatefoldExport.match(/class="gatefold-shared"/g)||[]).length,1,'Gatefold shared-frame flap missing');
   assert.equal((gatefoldExport.match(/class="gatefold-folds"/g)||[]).length,1,'Gatefold physical fold marks missing');
   assert.equal((gatefoldExport.match(/class="gatefold-route-signature"/g)||[]).length,1,'Gatefold route-comparison signature missing or duplicated');
+  const gatefoldResidue=await page.evaluate(svg=>{const d=new DOMParser().parseFromString(svg,'image/svg+xml');return [...d.querySelectorAll('.artifact-order-imprint path')].map(x=>[x.dataset.artifact,x.dataset.order]);},gatefoldExport);
+  assert.deepEqual(gatefoldResidue,[['screen','1'],['folio','2']],'Gatefold print did not preserve the first two physical-completion residues');
   const gatefoldRoute=await page.evaluate(svg=>{
     const d=new DOMParser().parseFromString(svg,'image/svg+xml');
     return [...d.querySelectorAll('.gatefold-route-signature path')].map(x=>({d:x.getAttribute('d'),stroke:x.getAttribute('stroke')}));
@@ -903,8 +909,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.click('.artifact-flex');
   await page.waitForFunction(()=>location.pathname.endsWith('/flexagon.html')&&!document.querySelector('.flexagon-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="flexagon.css?v=4"]',xs=>xs.length),1,'Trihexaflexagon workbench stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=1"]',xs=>xs.length),1,'Trihexaflexagon artifact-history module missing');
-  assert.equal(await page.$$eval('script[src*="flexagon.js?v=8"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=2"]',xs=>xs.length),1,'Trihexaflexagon artifact-history module missing');
+  assert.equal(await page.$$eval('script[src*="flexagon.js?v=9"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
   assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional trihexaflexagon branch must not load metrics');
   assert.equal(await page.$eval('#flex-print',e=>e.getAttribute('src')),null,'Inlined flexagon print unexpectedly regressed to an image source');
   await page.waitForFunction(()=>document.querySelector('#flex-print.ready')&&document.querySelectorAll('#flex-print [data-face]').length===18&&document.querySelector('#flex-download')?.href.startsWith('blob:'),{timeout:5000});
@@ -913,6 +919,8 @@ assert.equal(invalidSingleEval.length,0,
   assert(flexExport.includes('width="190mm" height="132mm"'),'Trihexaflexagon print sheet lost its physical dimensions');
   assert.equal((flexExport.match(/class="route-room"/g)||[]).length,4,'Trihexaflexagon route imprint lost room history');
   assert.equal((flexExport.match(/class="route-contact"/g)||[]).length,4,'Trihexaflexagon route imprint lost contact history');
+  const flexResidueBefore=await page.evaluate(svg=>{const d=new DOMParser().parseFromString(svg,'image/svg+xml');return [...d.querySelectorAll('.artifact-order-imprint path')].map(x=>[x.dataset.artifact,x.dataset.order]);},flexExport);
+  assert.deepEqual(flexResidueBefore,[['screen','1'],['folio','2']],'Trihexaflexagon print should inherit the completed physical prefix before its own witness');
   assert.equal((flexExport.match(/data-row="top"/g)||[]).length,10,'Trihexaflexagon print sheet lost its ten top triangles');
   assert.equal((flexExport.match(/data-row="bottom"/g)||[]).length,8,'Trihexaflexagon print sheet lost its eight lower triangles');
   assert.equal((flexExport.match(/class="magic-grain"/g)||[]).length,18,'Trihexaflexagon material checksum lost one or more triangle grains');
@@ -978,6 +986,10 @@ assert.equal(invalidSingleEval.length,0,
   const flexStateAfter=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')&&!k.startsWith('nb036-artifact-v')).sort(([a],[b])=>a.localeCompare(b)))));
   assert.equal(flexStateAfter,flexStateBefore,'Trihexaflexagon mutated unrelated puzzle progress state');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-artifact-v1:flex')),'1','Seeing all three flexagon faces did not leave its physical witness');
+  assert.equal(await page.$eval('#flex-download',e=>e.dataset.artifactOrder),'screen-folio-flex','Completed flexagon export did not absorb the full physical order');
+  const flexExportAfter=await page.$eval('#flex-download',async a=>await (await fetch(a.href)).text());
+  const flexResidueAfter=await page.evaluate(svg=>{const d=new DOMParser().parseFromString(svg,'image/svg+xml');return [...d.querySelectorAll('.artifact-order-imprint path')].map(x=>[x.dataset.artifact,x.dataset.order]);},flexExportAfter);
+  assert.deepEqual(flexResidueAfter,[['screen','1'],['folio','2'],['flex','3']],'Completed flexagon print did not preserve the full physical-completion residue');
   await page.click('.breadcrumb');
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('.verso-artifact.done',xs=>xs.length),3,'Three physical artifacts did not preserve all three workbench witnesses');
