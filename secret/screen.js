@@ -34,6 +34,7 @@ const render=()=>{
  moving.setAttribute('transform','translate('+phase+' 0)');
  plate.setAttribute('aria-valuenow',String(Math.round(phase)));
  const on=registered();
+ if(on)localStorage.setItem('nb036-artifact-v1:screen','1');
  plate.classList.toggle('registered',on);download.classList.toggle('ready',on);
  download.tabIndex=on?0:-1;download.setAttribute('aria-hidden',String(!on));
 };

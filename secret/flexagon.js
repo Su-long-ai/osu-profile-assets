@@ -9,6 +9,8 @@ const asset='./036js-flexagon-'+edition+'.svg';
 const print=document.querySelector('#flex-print'),download=document.querySelector('#flex-download');
 download.download='036js-'+edition+'-trihexaflexagon-route.svg';
 const topCycle=[1,3,2],bottomCycle=[3,2,1];let index=0,exportUrl='';
+const seenFaces=new Set((()=>{try{const x=JSON.parse(localStorage.getItem('nb036-artifact-v1:flex-faces')||'[]');return Array.isArray(x)?x.filter(v=>topCycle.includes(v)):[]}catch{return []}})());
+seenFaces.add(topCycle[index]);
 const main=document.querySelector('#flex-face-art'),under=document.querySelector('#flex-under-art');
 const grainWeights={1:[1,2,3,4,5,6],2:[1,2,2,5,5,6],3:[1,1,3,4,6,6]};
 const grainColors={1:'#9cc4c9',2:'#b7adcb',3:'#a6c7ce'};
@@ -77,8 +79,9 @@ fetch(asset).then(r=>{if(!r.ok)throw new Error('flexagon print');return r.text()
  print.classList.add('ready');
  exportUrl=URL.createObjectURL(new Blob([serialized],{type:'image/svg+xml'}));download.href=exportUrl;
  render();
-}).catch(()=>location.replace('./folio.html'));
-document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;render()});
+}).catch(()=>location.replace('./verso.html'));
+document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;seenFaces.add(topCycle[index]);localStorage.setItem('nb036-artifact-v1:flex-faces',JSON.stringify([...seenFaces]));if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}render()});
+if(seenFaces.size===topCycle.length){localStorage.setItem('nb036-artifact-v1:flex','1');document.querySelector('.flexagon-stage')?.classList.add('witnessed')}
 addEventListener('pagehide',()=>{if(exportUrl)URL.revokeObjectURL(exportUrl)});
 render();document.querySelector('.flexagon-stage').hidden=false;
 })();
