@@ -881,9 +881,12 @@ assert.equal(invalidSingleEval.length,0,
   assert(underRest.opacity<.4&&underRest.transform!=='none','Trihexaflexagon underside did not stay physically tucked under the top face');
   await page.click('#flex-pin');assert.deepEqual(await flexPair(),['3','2','3'],'First flex did not reveal verso/registration state');
   await page.click('#flex-pin');assert.deepEqual(await flexPair(),['2','1','2'],'Second flex did not reveal registration/rooms state');
-  await page.$eval('#flex-pin',e=>e.focus());
+  await page.$eval('#flex-download',e=>e.focus());
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'flex-pin','Keyboard tab did not reach the flex axis');
+  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('#flex-under-art')).opacity)>=.48,{timeout:500});
   const underFocus=await page.$eval('#flex-under-art',e=>Number(getComputedStyle(e).opacity));
-  assert(underFocus>=.48,'Focusing the flex axis did not expose the underside enough to read its paired face');
+  assert(underFocus>=.48,'Keyboard focus on the flex axis did not expose the underside enough to read its paired face');
   await page.keyboard.press('Enter');
   assert.deepEqual(await flexPair(),['1','3','1'],'Keyboard flex did not cycle back to rooms/verso state');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'Trihexaflexagon workbench overflows horizontally');
