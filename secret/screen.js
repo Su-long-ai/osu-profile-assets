@@ -25,13 +25,13 @@ const exportRoute='<g class="screen-route-signature" fill="none" opacity=".86">'
 const orderInk=edition==='paper'?'#65706d':'#8198a2';
 const artifactResidue=()=>{
  const pos={folio:[188,18,4,4],screen:[200,18,-4,4],flex:[212,18,4,-4]};
- const marks=window.NBArtifactOrder?.marks?.()||[];
+ const marks=window.NBArtifactOrder?.marksFor?.('screen')||[];
  return '<g class="artifact-order-imprint" fill="none" stroke-linecap="round">'+marks.map(m=>{const [x,y,dx,dy]=pos[m.id];return '<path data-artifact="'+m.id+'" data-order="'+m.rank+'" d="M'+x+' '+y+'l'+dx+' '+dy+'" stroke="'+orderInk+'" stroke-width="'+m.width+'" opacity="'+m.opacity+'"/>';}).join('')+'</g>';
 };
 const exportSvg=()=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="120mm" height="120mm"><g fill="#05070a">'+exportBars+'</g><g fill="none" stroke="#111820" stroke-width=".7"><rect x="38" y="28" width="344" height="344"/></g><g fill="none" stroke="#111820" stroke-width=".75">'+exportReg(50,52)+exportReg(350,348)+'</g>'+exportRoute+artifactResidue()+'<g fill="none" stroke="#111820" stroke-width=".55" opacity=".8"><path d="M0 16h18M16 0v18M382 0v18M382 16h18M0 384h18M16 382v18M382 382v18M382 384h18"/></g></svg>';
 let exportUrl='',exportOrderKey='';
 const refreshExport=()=>{
- const key=(window.NBArtifactOrder?.order?.()||[]).join('-');
+ const key=(window.NBArtifactOrder?.snapshot?.('screen')||[]).join('-');
  if(exportUrl&&key===exportOrderKey)return;
  if(exportUrl)URL.revokeObjectURL(exportUrl);
  exportUrl=URL.createObjectURL(new Blob([exportSvg()],{type:'image/svg+xml'}));

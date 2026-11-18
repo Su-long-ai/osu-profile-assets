@@ -54,7 +54,7 @@ const addRouteImprint=root=>{
 };
 const syncOrderImprint=root=>{
  const old=root.querySelector('.artifact-order-imprint');if(old)old.remove();
- const marks=window.NBArtifactOrder?.marks?.()||[];if(!marks.length)return 0;
+ const marks=window.NBArtifactOrder?.marksFor?.('flex')||[];if(!marks.length)return 0;
  const ns='http://www.w3.org/2000/svg',g=document.createElementNS(ns,'g');
  g.setAttribute('class','artifact-order-imprint');g.setAttribute('fill','none');g.setAttribute('stroke-linecap','round');
  const pos={folio:[350,274,4,4],screen:[368,274,-4,4],flex:[386,274,4,-4]},ink=edition==='paper'?'#65706d':'#8198a2';
@@ -67,7 +67,7 @@ const refreshExport=()=>{
  const serialized=new XMLSerializer().serializeToString(root);
  if(/<script|<image|href=/i.test(serialized))throw new Error('flexagon route purity');
  if(exportUrl)URL.revokeObjectURL(exportUrl);
- exportUrl=URL.createObjectURL(new Blob([serialized],{type:'image/svg+xml'}));download.href=exportUrl;download.dataset.artifactOrder=(window.NBArtifactOrder?.order?.()||[]).join('-');
+ exportUrl=URL.createObjectURL(new Blob([serialized],{type:'image/svg+xml'}));download.href=exportUrl;download.dataset.artifactOrder=(window.NBArtifactOrder?.snapshot?.('flex')||[]).join('-');
 };
 const markNet=(top,bottom)=>{
  print.querySelectorAll('[data-face]').forEach(x=>{

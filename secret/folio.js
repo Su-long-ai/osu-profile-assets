@@ -23,7 +23,7 @@ const roomRoute=route.order('nb036-route-v1:rooms'),contactRoute=route.order('nb
 const orderInk=edition==='paper'?'#65706d':'#8198a2';
 const artifactResidue=(x0,y0)=>{
   const pos={folio:[-12,0,4,4],screen:[0,0,-4,4],flex:[12,0,4,-4]};
-  const marks=window.NBArtifactOrder?.marks?.()||[];
+  const marks=window.NBArtifactOrder?.marksFor?.('folio')||[];
   return '<g class="artifact-order-imprint" fill="none" stroke-linecap="round">'+marks.map(m=>{const [x,y,dx,dy]=pos[m.id];return '<path data-artifact="'+m.id+'" data-order="'+m.rank+'" d="M'+(x0+x)+' '+(y0+y)+'l'+dx+' '+dy+'" stroke="'+orderInk+'" stroke-width="'+m.width+'" opacity="'+m.opacity+'"/>';}).join('')+'</g>';
 };
 const routeSignature='<g class="gatefold-route-signature" fill="none" opacity=".72">'+
@@ -58,11 +58,12 @@ const refreshDownload=()=>{
   if(exportUrl)URL.revokeObjectURL(exportUrl);
   exportUrl=URL.createObjectURL(new Blob([gatefoldSvg()],{type:'image/svg+xml'}));
   download.href=exportUrl;download.download='036js-'+edition+'-gatefold.svg';
+  download.dataset.artifactOrder=(window.NBArtifactOrder?.snapshot?.('folio')||[]).join('-');
 };
 refreshDownload();
 function renderFoldState(on){
   folio.classList.toggle('folded',on);
-  if(on){localStorage.setItem('nb036-artifact-v1:folio','1');window.NBArtifactOrder?.mark('folio');refreshDownload();download.dataset.artifactOrder=(window.NBArtifactOrder?.order?.()||[]).join('-')}
+  if(on){localStorage.setItem('nb036-artifact-v1:folio','1');window.NBArtifactOrder?.mark('folio');refreshDownload();download.dataset.artifactOrder=(window.NBArtifactOrder?.snapshot?.('folio')||[]).join('-')}
   hinge.setAttribute('aria-pressed',String(on));
   download.tabIndex=on?0:-1;
   download.setAttribute('aria-hidden',String(!on));
