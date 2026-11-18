@@ -1,9 +1,9 @@
 (()=>{'use strict';
-const ids=['keys','dates','mirror','margin'],accepted=new Set(ids);
+const ids=['keys','dates','mirror','margin'],accepted=new Set(ids),TARGET=10,SNAP=1.6;
 const routeOrder=key=>{try{const x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)&&x.length===4&&new Set(x).size===4&&x.every(v=>accepted.has(v))?x:[]}catch{return []}};
 const eligible=localStorage.getItem('nb036-misc-v4:joined')==='1'&&localStorage.getItem('nb036-verso-v1:seen')==='1'&&routeOrder('nb036-route-v1:rooms').length===4&&routeOrder('nb036-route-v1:contacts').length===4;
 if(!eligible||!window.NBFragments?.parts){location.replace('./verso.html');return}
-const plate=document.querySelector('#screen-plate'),base=document.querySelector('#screen-base'),film=document.querySelector('#screen-film');
+const plate=document.querySelector('#screen-plate'),base=document.querySelector('#screen-base'),film=document.querySelector('#screen-film'),download=document.querySelector('#screen-download');
 const parts=window.NBFragments.parts,layout=parts.map((p,i)=>({p,x:i%2?202:81,y:i<2?99:197}));
 const defs='<defs>'+layout.map((o,i)=>'<clipPath id="screen-wing-'+i+'" clipPathUnits="userSpaceOnUse"><path d="'+o.p.contour+'" transform="translate('+o.x+' '+o.y+') scale(.85)"/></clipPath>').join('')+'</defs>';
 const bg=Array.from({length:19},(_,i)=>'<path d="M'+(10+i*20)+' 42V358"/>').join('');
@@ -13,17 +13,26 @@ base.innerHTML=defs+'<g class="screen-grid">'+bg+'</g>'+wingScreens+'<g class="s
 const bars=Array.from({length:22},(_,i)=>'<rect class="screen-film-bar" x="'+(-6+i*20)+'" y="42" width="12" height="316"/>').join('');
 const reg=(x,y)=>'<g class="screen-film-register"><circle cx="'+x+'" cy="'+y+'" r="5.5"/><path d="M'+(x-9)+' '+y+'h3m12 0h3M'+x+' '+(y-9)+'v3m0 12v3"/><circle class="core" cx="'+x+'" cy="'+y+'" r="1.2"/></g>';
 film.innerHTML='<g id="screen-film-move">'+bars+'<rect class="screen-film-edge" x="28" y="28" width="344" height="344"/>'+reg(40,52)+reg(340,348)+'</g>';
-const target='<g class="screen-film-register" opacity=".45">'+reg(50,52)+reg(350,348)+'</g>';
-base.insertAdjacentHTML('beforeend',target);
+base.insertAdjacentHTML('beforeend','<g class="screen-film-register" opacity=".45">'+reg(50,52)+reg(350,348)+'</g>');
 const moving=document.querySelector('#screen-film-move');
 let phase=0,drag=null;
 const clamp=x=>Math.max(0,Math.min(20,x));
-const render=()=>{moving.setAttribute('transform','translate('+phase+' 0)');plate.setAttribute('aria-valuenow',String(Math.round(phase)))};
+const registered=()=>Math.abs(phase-TARGET)<.12;
+const render=()=>{
+ moving.setAttribute('transform','translate('+phase+' 0)');
+ plate.setAttribute('aria-valuenow',String(Math.round(phase)));
+ const on=registered();
+ plate.classList.toggle('registered',on);download.classList.toggle('ready',on);
+ download.tabIndex=on?0:-1;download.setAttribute('aria-hidden',String(!on));
+};
 const change=x=>{phase=clamp(x);render()};
+const settle=()=>{if(Math.abs(phase-TARGET)<=SNAP)change(TARGET)};
 const pointerX=e=>{const r=plate.getBoundingClientRect();return (e.clientX-r.left)*400/r.width};
 plate.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0)return;e.preventDefault();plate.focus({preventScroll:true});drag={id:e.pointerId,x:pointerX(e),phase};plate.setPointerCapture(e.pointerId)});
 plate.addEventListener('pointermove',e=>{if(drag&&e.pointerId===drag.id)change(drag.phase+pointerX(e)-drag.x)});
-for(const type of ['pointerup','pointercancel','lostpointercapture'])plate.addEventListener(type,()=>{drag=null});
+plate.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id)return;drag=null;settle()});
+plate.addEventListener('pointercancel',()=>{drag=null});
+plate.addEventListener('lostpointercapture',()=>{if(drag){drag=null;settle()}});
 plate.addEventListener('keydown',e=>{const d={ArrowLeft:-1,ArrowDown:-1,ArrowRight:1,ArrowUp:1}[e.key];if(d!==undefined){e.preventDefault();change(phase+d)}else if(e.key==='Home'){e.preventDefault();change(0)}else if(e.key==='End'){e.preventDefault();change(20)}});
 render();document.querySelector('.screen-stage').hidden=false;
 })();
