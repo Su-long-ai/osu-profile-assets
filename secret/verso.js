@@ -34,7 +34,12 @@ function refresh(){
     if(i>=0)path.classList.add('order-'+(i+1));
   });
   relay?.classList.toggle('available',all);
-  if(relay){relay.tabIndex=all?0:-1;relay.setAttribute('aria-hidden',String(!all))}
+  if(relay){
+    const hasChronology=order.length===3;
+    relay.href=all&&hasChronology?'./press.html':'https://osu.ppy.sh/users/29089125#me';
+    relay.setAttribute('aria-label',all&&hasChronology?'三件实体分支都留下痕迹，进入套准台':'三件实体分支都留下痕迹，返回 osu! 主页');
+    relay.tabIndex=all?0:-1;relay.setAttribute('aria-hidden',String(!all));
+  }
 }
 for(const link of Object.values(artifacts)){
   link?.addEventListener('click',e=>{if(!routeReady())e.preventDefault()});

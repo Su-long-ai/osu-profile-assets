@@ -754,7 +754,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('link[href*="verso.css?v=4"]',xs=>xs.length),1,
     'Profile verso did not pick up the nonlinear-junction stylesheet revision');
   assert.equal(await page.$$eval('script[src*="artifact-order.js?v=3"]',xs=>xs.length),1,'Profile verso artifact-history module missing');
-  assert.equal(await page.$$eval('script[src*="verso.js?v=6"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="verso.js?v=7"]',xs=>xs.length),1,
     'Profile-verso nonlinear-junction client cache version is stale');
   assert.equal(await page.$$eval('script[src*="metrics.js?v=2"]',xs=>xs.length),1,
     'Profile-verso metrics cache version is stale');
@@ -997,7 +997,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$eval('.verso-junction',e=>e.dataset.order),'screen-folio-flex','Workbench did not project the stored artifact order into its physical residue');
   assert.deepEqual(await page.$$eval('.artifact-order-residue [data-artifact]',xs=>xs.map(x=>[x.dataset.artifact,[...x.classList].find(c=>c.startsWith('order-'))||''])),[['folio','order-2'],['screen','order-1'],['flex','order-3']],'Relay residue no longer encodes the browser\'s physical completion order');
   assert.equal(await page.$$eval('.verso-relay.available',xs=>xs.length),1,'Three physical witnesses did not unlock the relay');
-  assert.equal(await page.$eval('.verso-relay',e=>e.getAttribute('href')),'https://osu.ppy.sh/users/29089125#me','Completed workbench relay no longer returns to the public profile');
+  assert.equal(await page.$eval('.verso-relay',e=>e.getAttribute('href')),'./press.html','Completed ordered workbench did not expose the chronology press');
   await page.click('.artifact-folio');
   await page.waitForFunction(()=>location.pathname.endsWith('/folio.html')&&!document.querySelector('.folio-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$eval('#folio-flex',e=>e.tabIndex),-1,'Re-entering the gatefold should reopen it rather than preserve a hidden fold state');
@@ -1013,6 +1013,50 @@ assert.equal(invalidSingleEval.length,0,
   await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('.verso-artifact.done',xs=>xs.length),3,'Returning from the folio lost completed workbench witnesses');
   assert.equal(await page.$$eval('.verso-relay.available',xs=>xs.length),1,'Returning from the folio lost the completed relay');
+  await page.click('.verso-relay');
+  await page.waitForFunction(()=>location.pathname.endsWith('/press.html')&&!document.querySelector('.press-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('link[href*="press.css?v=2"]',xs=>xs.length),1,'Chronology-press stylesheet missing');
+  assert.equal(await page.$$eval('script[src*="artifact-order.js?v=3"]',xs=>xs.length),1,'Chronology press lost its temporal-provenance authority');
+  assert.equal(await page.$$eval('script[src*="press.js?v=2"]',xs=>xs.length),1,'Chronology-press client missing');
+  assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional chronology press must not load metrics');
+  assert.equal(await page.$$eval('.press-layer',xs=>xs.length),3,'Chronology press needs exactly three physical layers');
+  assert.equal(await page.$$eval('.press-layer.registered',xs=>xs.length),0,'Fresh chronology press fabricated registration');
+  assert.equal(await page.$eval('#press-relay',e=>e.getAttribute('aria-hidden')),'true','Chronology press exposed its exit before registration');
+  assert.equal(await page.$eval('#press-download',e=>e.getAttribute('aria-hidden')),'true','Chronology press exposed its flattened plate before registration');
+  assert(Number(await page.$eval('#press-relay',e=>getComputedStyle(e).opacity))<.01,'Unresolved chronology press visually leaked its final relay');
+  assert(Number(await page.$eval('#press-download',e=>getComputedStyle(e).opacity))<.01,'Unresolved chronology press visually leaked its download control');
+  await wordless();
+  const pressStarts=await page.$$eval('.press-layer',xs=>Object.fromEntries(xs.map(x=>[x.dataset.artifact,x.getAttribute('transform')])));
+  assert.deepEqual(pressStarts,{folio:'translate(-42 28)',screen:'translate(36 -32)',flex:'translate(26 42)'},'Chronology press lost its three deliberately misregistered layers');
+  async function dragPress(id,dx,dy){
+    const plateBox=await page.$eval('#press-plate',e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}});
+    const b=await page.$eval('.press-layer[data-artifact="'+id+'"] .reg-hit',e=>{const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}});
+    const k=plateBox.w/400;
+    await page.mouse.move(b.x,b.y);await page.mouse.down();await page.mouse.move(b.x+dx*k,b.y+dy*k,{steps:8});await page.mouse.up();
+  }
+  await dragPress('folio',42,-28);
+  assert.equal(await page.$$eval('.press-layer.registered',xs=>xs.length),1,'Gatefold layer did not snap to its registration marks');
+  await dragPress('screen',-36,32);
+  assert.equal(await page.$$eval('.press-layer.registered',xs=>xs.length),2,'Transparent-screen layer did not snap to its registration marks');
+  await dragPress('flex',-26,-42);
+  assert.equal(await page.$$eval('.press-layer.registered',xs=>xs.length),3,'Flexagon layer did not snap to its registration marks');
+  assert(await page.$eval('.press-frame',e=>e.classList.contains('solved')),'Three aligned physical histories did not resolve the chronology press');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-artifact-v4:press')),'1','Chronology press did not persist its resolved state');
+  assert.equal(await page.$eval('#press-relay',e=>e.getAttribute('aria-hidden')),'false','Resolved chronology press did not expose its profile relay');
+  assert.equal(await page.$eval('#press-download',e=>e.dataset.artifactOrder),'screen-folio-flex','Flattened chronology plate lost the browser physical order');
+  const pressExport=await page.$eval('#press-download',async a=>await (await fetch(a.href)).text());
+  assert(pressExport.includes('width="120mm" height="120mm"'),'Chronology export lost its physical plate dimensions');
+  assert.equal((pressExport.match(/class="chronology"/g)||[]).length,3,'Chronology export must preserve one temporal fragment per physical layer');
+  assert(!pressExport.includes('reg-hit'),'Chronology export leaked interaction-only hit geometry');
+  assert(!/<text|<image|https:|href=/i.test(pressExport),'Chronology export leaked text, raster, URL, or external dependency');
+  await page.click('.breadcrumb');
+  await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
+  await page.click('.verso-relay');
+  await page.waitForFunction(()=>location.pathname.endsWith('/press.html')&&!document.querySelector('.press-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('.press-layer.registered',xs=>xs.length),3,'Resolved chronology press did not restore its aligned physical state');
+  assert.equal(await page.$eval('#press-relay',e=>e.getAttribute('aria-hidden')),'false','Resolved chronology press lost its final relay on revisit');
+  await page.click('.breadcrumb');
+  await page.waitForFunction(()=>location.pathname.endsWith('/verso.html')&&!document.querySelector('.verso-stage')?.hidden,{timeout:5000});
   await page.click('.breadcrumb');
   await page.waitForFunction(()=>location.pathname.endsWith('/impression.html'),{timeout:5000});
   assert(await page.$eval('#plate',e=>e.classList.contains('solved')&&e.classList.contains('contact-complete')),
