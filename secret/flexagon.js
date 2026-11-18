@@ -5,18 +5,30 @@ const eligible=localStorage.getItem('nb036-misc-v4:joined')==='1'&&localStorage.
 if(!eligible){location.replace('./verso.html');return}
 const edition=localStorage.getItem('nb036-impression-v2:edition')==='paper'?'paper':'night';
 const asset='./036js-flexagon-'+edition+'.svg';
-const image=document.querySelector('#flex-print'),download=document.querySelector('#flex-download');
-image.src=asset;download.href=asset;download.download='036js-'+edition+'-trihexaflexagon.svg';
+const print=document.querySelector('#flex-print'),download=document.querySelector('#flex-download');
+download.href=asset;download.download='036js-'+edition+'-trihexaflexagon.svg';
 const topCycle=[1,3,2],bottomCycle=[3,2,1];let index=0;
 const main=document.querySelector('#flex-face-art'),under=document.querySelector('#flex-under-art');
 under.innerHTML=main.innerHTML;
+const markNet=(top,bottom)=>{
+ print.querySelectorAll('[data-face]').forEach(x=>{
+  const face=Number(x.dataset.face);
+  x.classList.toggle('net-top',face===top);
+  x.classList.toggle('net-bottom',face===bottom);
+ });
+};
 const render=()=>{
  const top=topCycle[index],bottom=bottomCycle[index];
  main.querySelectorAll('.flex-face').forEach(x=>x.classList.toggle('active',Number(x.dataset.face)===top));
  under.querySelectorAll('.flex-face').forEach(x=>x.classList.toggle('active',Number(x.dataset.face)===bottom));
+ markNet(top,bottom);
  const pin=document.querySelector('#flex-pin');
  pin.dataset.face=String(top);pin.dataset.topFace=String(top);pin.dataset.bottomFace=String(bottom);
 };
+fetch(asset).then(r=>{if(!r.ok)throw new Error('flexagon print');return r.text()}).then(svg=>{
+ if(/<script|<image|href=/i.test(svg))throw new Error('flexagon print purity');
+ print.innerHTML=svg;print.classList.add('ready');render();
+}).catch(()=>location.replace('./folio.html'));
 document.querySelector('#flex-pin').addEventListener('click',()=>{index=(index+1)%topCycle.length;render()});
 render();document.querySelector('.flexagon-stage').hidden=false;
 })();
