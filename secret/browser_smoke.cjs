@@ -25,9 +25,16 @@ assert.equal(invalidSingleEval.length,0,
  page.on('request',r=>r.url().includes('countapi.mileshilliard.com')?r.abort():r.continue());
  const base='https://su-long-ai.github.io/osu-profile-assets/secret/';
  const cacheBuster=process.env.GITHUB_SHA?.slice(0,12)||Date.now().toString(36);
- const expectedCSS='silent.css?v=47';
+ function expectedSilentFor(name=''){
+  const clean=(name.split(/[?#]/)[0]||'index.html');
+  const source=fs.readFileSync(path.join(__dirname,clean),'utf8');
+  const match=source.match(/silent\.css\?v=\d+/);
+  assert(match,clean+' does not declare a versioned silent.css');
+  return match[0];
+ }
  let firstPage=true;
  async function open(name=''){
+  const expectedCSS=expectedSilentFor(name);
   let res,css='';
   for(let attempt=0;attempt<(firstPage?16:1);attempt++){
    res=await page.goto(base+name+'?v='+cacheBuster+'-'+attempt,{waitUntil:'load',timeout:27000});
