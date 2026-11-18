@@ -1,15 +1,13 @@
 (()=>{'use strict';
-const ids=['keys','dates','mirror','margin'],accepted=new Set(ids),TARGET=10,SNAP=1.6;
-const routeOrder=key=>{try{const x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)&&x.length===4&&new Set(x).size===4&&x.every(v=>accepted.has(v))?x:[]}catch{return []}};
-const roomRoute=routeOrder('nb036-route-v1:rooms'),contactRoute=routeOrder('nb036-route-v1:contacts');
+const route=window.NBRouteSignature,TARGET=10,SNAP=1.6;
+if(!route){location.replace('./folio.html');return}
+const roomRoute=route.order('nb036-route-v1:rooms'),contactRoute=route.order('nb036-route-v1:contacts');
 const eligible=localStorage.getItem('nb036-misc-v4:joined')==='1'&&localStorage.getItem('nb036-verso-v1:seen')==='1'&&roomRoute.length===4&&contactRoute.length===4;
 if(!eligible||!window.NBFragments?.parts){location.replace('./verso.html');return}
 const plate=document.querySelector('#screen-plate'),base=document.querySelector('#screen-base'),film=document.querySelector('#screen-film'),download=document.querySelector('#screen-download');
 const parts=window.NBFragments.parts,layout=parts.map((p,i)=>({p,x:i%2?202:81,y:i<2?99:197}));
-const edition=localStorage.getItem('nb036-impression-v2:edition')==='paper'?'paper':'night';
-const paperInk={'#9cc4c9':'#386770','#a6c7ce':'#416773','#b7adcb':'#665577','#bba8c9':'#75556e'};
-const color=Object.fromEntries(parts.map(p=>[p.id,p.color]));
-const ink=id=>edition==='paper'?(paperInk[color[id]]||color[id]):color[id];
+const edition=route.edition();
+const ink=id=>route.color(id,edition);
 const routeTicks=(list,x0,cls)=>list.map((id,i)=>'<path class="'+cls+'" data-part="'+id+'" data-order="'+(i+1)+'" d="M'+x0+' '+(78+i*10)+'h4" stroke="'+ink(id)+'" stroke-width=".9" stroke-linecap="round"/>').join('');
 const defs='<defs>'+layout.map((o,i)=>'<clipPath id="screen-wing-'+i+'" clipPathUnits="userSpaceOnUse"><path d="'+o.p.contour+'" transform="translate('+o.x+' '+o.y+') scale(.85)"/></clipPath>').join('')+'</defs>';
 const bg=Array.from({length:19},(_,i)=>'<path d="M'+(10+i*20)+' 42V358"/>').join('');

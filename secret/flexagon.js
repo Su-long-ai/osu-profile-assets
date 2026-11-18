@@ -1,10 +1,10 @@
 (()=>{'use strict';
-const ids=['keys','dates','mirror','margin'],accepted=new Set(ids);
-const routeOrder=key=>{try{const x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)&&x.length===4&&new Set(x).size===4&&x.every(v=>accepted.has(v))?x:[]}catch{return []}};
-const roomRoute=routeOrder('nb036-route-v1:rooms'),contactRoute=routeOrder('nb036-route-v1:contacts');
+const route=window.NBRouteSignature;
+if(!route){location.replace('./folio.html');return}
+const roomRoute=route.order('nb036-route-v1:rooms'),contactRoute=route.order('nb036-route-v1:contacts');
 const eligible=localStorage.getItem('nb036-misc-v4:joined')==='1'&&localStorage.getItem('nb036-verso-v1:seen')==='1'&&roomRoute.length===4&&contactRoute.length===4;
 if(!eligible){location.replace('./verso.html');return}
-const edition=localStorage.getItem('nb036-impression-v2:edition')==='paper'?'paper':'night';
+const edition=route.edition();
 const asset='./036js-flexagon-'+edition+'.svg';
 const print=document.querySelector('#flex-print'),download=document.querySelector('#flex-download');
 download.download='036js-'+edition+'-trihexaflexagon-route.svg';
@@ -12,9 +12,6 @@ const topCycle=[1,3,2],bottomCycle=[3,2,1];let index=0,exportUrl='';
 const main=document.querySelector('#flex-face-art'),under=document.querySelector('#flex-under-art');
 const grainWeights={1:[1,2,3,4,5,6],2:[1,2,2,5,5,6],3:[1,1,3,4,6,6]};
 const grainColors={1:'#9cc4c9',2:'#b7adcb',3:'#a6c7ce'};
-const routeColorsNight={keys:'#9cc4c9',dates:'#b7adcb',mirror:'#a6c7ce',margin:'#bba8c9'};
-const routeColorsPaper={keys:'#386770',dates:'#665577',mirror:'#416773',margin:'#75556e'};
-const routeColors=edition==='paper'?routeColorsPaper:routeColorsNight;
 const decorateGrain=root=>{
  root.querySelectorAll('.flex-face').forEach(face=>{
   const f=Number(face.dataset.face),polys=[...face.children].filter(x=>x.tagName.toLowerCase()==='polygon');
@@ -43,7 +40,7 @@ const addRouteImprint=root=>{
    const len=5.2+i*1.15;
    p.setAttribute('class','route-'+kind);p.setAttribute('data-part',id);p.setAttribute('data-order',String(i+1));
    p.setAttribute('d','M'+xs[i]+' '+y+'v'+(dir*len).toFixed(2));
-   p.setAttribute('stroke',routeColors[id]);p.setAttribute('stroke-width','.92');
+   p.setAttribute('stroke',route.color(id,edition));p.setAttribute('stroke-width','.92');
    g.appendChild(p);
  });
  add(roomRoute,'room',47,1);add(contactRoute,'contact',237,-1);

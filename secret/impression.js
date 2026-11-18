@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+  const route=window.NBRouteSignature;
+  if(!route){location.replace('./');return}
   const state='nb036-impression-v1:aligned', editionKey='nb036-impression-v2:edition';
   const found=['keys','dates','mirror','margin'].every(k=>localStorage.getItem('nb036-misc-v3:'+k)==='1');
   if(!found||localStorage.getItem('nb036-misc-v4:joined')!=='1'){location.replace('./');return}
@@ -62,21 +64,12 @@
   // geometry, but strip DOM-only part labels so the file carries no textual answer.
   const exportPins='<g class="export-registration-pins" opacity=".62">'+
     rawPins.replace(/<circle class="transfer-core"[^>]*(?:><\/circle>|\/>)/g,'').replace(/ data-pin-part="[^"]+"/g,'')+'</g>';
-  const paperInk={'#9cc4c9':'#386770','#a6c7ce':'#416773','#b7adcb':'#665577','#bba8c9':'#75556e','#beaace':'#846674','#a8cbd1':'#386770','#b4c8ce':'#59696a','#9ebdc8':'#53727a','#b7ccd2':'#586c70','#536b79':'#84918d','#121820':'#e6e2d7'};
-  const recolor=(source,paper)=>paper?source.replace(/#[0-9a-f]{6}/gi,x=>paperInk[x.toLowerCase()]||x):source;
-  const routeOrder=key=>{
-    try{
-      const list=JSON.parse(localStorage.getItem(key)||'[]');
-      const valid=new Set(parts.map(p=>p.id));
-      return Array.isArray(list)&&list.length===4&&new Set(list).size===4&&list.every(x=>valid.has(x))?list:[];
-    }catch{return []}
-  };
+  const recolor=(source,paper)=>route.recolor(source,paper?'paper':'night');
   const routeSignature=()=>{
-    const rooms=routeOrder('nb036-route-v1:rooms'),contacts=routeOrder('nb036-route-v1:contacts');
+    const rooms=route.order('nb036-route-v1:rooms'),contacts=route.order('nb036-route-v1:contacts');
     if(rooms.length!==4||contacts.length!==4)return '';
-    const color=Object.fromEntries(parts.map(p=>[p.id,p.color]));
     const ticks=(list,x,y0)=>list.map((id,i)=>
-      '<path d="M'+x+' '+(y0+i*10)+'h3" stroke="'+color[id]+'" stroke-width=".9" stroke-linecap="round"/>'
+      '<path d="M'+x+' '+(y0+i*10)+'h3" stroke="'+route.color(id,'night')+'" stroke-width=".9" stroke-linecap="round"/>'
     ).join('');
     return '<g class="duplex-route-signature" fill="none" opacity=".68">'+
       ticks(rooms,412,78)+ticks(contacts,425,78)+'</g>';
