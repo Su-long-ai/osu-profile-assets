@@ -9,6 +9,24 @@ const print=document.querySelector('#flex-print'),download=document.querySelecto
 download.href=asset;download.download='036js-'+edition+'-trihexaflexagon.svg';
 const topCycle=[1,3,2],bottomCycle=[3,2,1];let index=0;
 const main=document.querySelector('#flex-face-art'),under=document.querySelector('#flex-under-art');
+const grainWeights={1:[1,2,3,4,5,6],2:[1,2,2,5,5,6],3:[1,1,3,4,6,6]};
+const grainColors={1:'#9cc4c9',2:'#b7adcb',3:'#a6c7ce'};
+const decorateGrain=root=>{
+ root.querySelectorAll('.flex-face').forEach(face=>{
+  const f=Number(face.dataset.face),polys=[...face.children].filter(x=>x.tagName.toLowerCase()==='polygon');
+  polys.forEach((poly,i)=>{
+   const pts=(poly.getAttribute('points')||'').trim().split(/\s+/).map(p=>p.split(',').map(Number));
+   if(pts.length!==3)return;
+   const cx=pts.reduce((a,p)=>a+p[0],0)/3,cy=pts.reduce((a,p)=>a+p[1],0)/3,n=grainWeights[f][i];
+   const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+   g.setAttribute('class','magic-grain');g.dataset.weight=String(n);g.setAttribute('stroke',grainColors[f]);
+   g.setAttribute('stroke-width','.85');g.setAttribute('stroke-linecap','round');g.setAttribute('fill','none');
+   for(let k=0;k<n;k++){const q=document.createElementNS('http://www.w3.org/2000/svg','path'),dx=(k-(n-1)/2)*3.2;q.setAttribute('d',`M${(cx+dx).toFixed(2)} ${(cy+27).toFixed(2)}v${(3.4+(k%2)*1.2).toFixed(2)}`);g.appendChild(q)}
+   face.appendChild(g);
+  });
+ });
+};
+decorateGrain(main);
 under.innerHTML=main.innerHTML;
 const markNet=(top,bottom)=>{
  print.querySelectorAll('[data-face]').forEach(x=>{

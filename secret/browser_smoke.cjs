@@ -853,15 +853,16 @@ assert.equal(invalidSingleEval.length,0,
   const flexStateBefore=await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('nb036-')).sort(([a],[b])=>a.localeCompare(b)))));
   await page.click('#folio-flex');
   await page.waitForFunction(()=>location.pathname.endsWith('/flexagon.html')&&!document.querySelector('.flexagon-stage')?.hidden,{timeout:5000});
-  assert.equal(await page.$$eval('link[href*="flexagon.css?v=3"]',xs=>xs.length),1,'Trihexaflexagon workbench stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="flexagon.js?v=3"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
+  assert.equal(await page.$$eval('link[href*="flexagon.css?v=4"]',xs=>xs.length),1,'Trihexaflexagon workbench stylesheet missing');
+  assert.equal(await page.$$eval('script[src*="flexagon.js?v=4"]',xs=>xs.length),1,'Trihexaflexagon workbench client missing');
   assert.equal(await page.$$eval('script[src*="metrics.js"]',xs=>xs.length),0,'Optional trihexaflexagon branch must not load metrics');
-  assert.equal(await page.$eval('#flex-print',e=>e.getAttribute('src')),'./036js-flexagon-night.svg','Night flexagon workbench selected the wrong print artifact');
+  assert.equal(await page.$eval('#flex-print',e=>e.getAttribute('src')),null,'Inlined flexagon print unexpectedly regressed to an image source');
   assert.equal(await page.$eval('#flex-download',e=>e.getAttribute('download')),'036js-night-trihexaflexagon.svg','Trihexaflexagon download naming drifted');
   const flexExport=await page.$eval('#flex-download',async a=>await (await fetch(a.href)).text());
   assert(flexExport.includes('width="190mm" height="132mm"'),'Trihexaflexagon print sheet lost its physical dimensions');
   assert.equal((flexExport.match(/data-row="top"/g)||[]).length,10,'Trihexaflexagon print sheet lost its ten top triangles');
   assert.equal((flexExport.match(/data-row="bottom"/g)||[]).length,8,'Trihexaflexagon print sheet lost its eight lower triangles');
+  assert.equal((flexExport.match(/class="magic-grain"/g)||[]).length,18,'Trihexaflexagon material checksum lost one or more triangle grains');
   assert(!flexExport.includes('<text')&&!flexExport.includes('<image')&&!flexExport.includes('href='),
     'Trihexaflexagon print sheet must stay text-free, raster-free, and self-contained');
   const flexTopology=await page.evaluate(svg=>{
@@ -873,6 +874,11 @@ assert.equal(invalidSingleEval.length,0,
   },flexExport);
   assert.deepEqual(flexTopology.top,[3,1,1,2,2,3,3,1,1,2],'Trihexaflexagon top-row classic topology drifted');
   assert.deepEqual(flexTopology.bottom,[2,3,3,1,1,2,2,3],'Trihexaflexagon lower-row classic topology drifted');
+  const grainTotals=await page.evaluate(svg=>{
+    const d=new DOMParser().parseFromString(svg,'image/svg+xml');
+    return [1,2,3].map(f=>[...d.querySelectorAll('[data-face="'+f+'"] .magic-grain')].reduce((a,g)=>a+Number(g.dataset.weight),0));
+  },flexExport);
+  assert.deepEqual(grainTotals,[21,21,21],'Trihexaflexagon material checksum no longer balances all three semantic faces');
   await page.waitForFunction(()=>document.querySelector('#flex-print.ready')&&document.querySelectorAll('#flex-print [data-face]').length===18,{timeout:5000});
   assert.equal(await page.$$eval('#flex-print>svg',xs=>xs.length),1,'Trihexaflexagon printable net was not inlined for provenance inspection');
   assert.deepEqual(await page.$$eval('#flex-print [data-face="1"],#flex-print [data-face="2"],#flex-print [data-face="3"]',xs=>{
@@ -880,6 +886,9 @@ assert.equal(invalidSingleEval.length,0,
   }),[6,6,6],'Trihexaflexagon provenance net no longer has six triangles per semantic face');
   assert.equal(await page.$$eval('#flex-face-art .flex-face',xs=>xs.length),3,'Trihexaflexagon top simulator needs exactly three semantic faces');
   assert.equal(await page.$$eval('#flex-under-art .flex-face',xs=>xs.length),3,'Trihexaflexagon underside simulator needs exactly three semantic faces');
+  assert.equal(await page.$$eval('#flex-print .magic-grain',xs=>xs.length),18,'Inlined print lost material checksum marks');
+  assert.equal(await page.$$eval('#flex-face-art .magic-grain',xs=>xs.length),18,'Top simulator lost material checksum marks');
+  assert.equal(await page.$$eval('#flex-under-art .magic-grain',xs=>xs.length),18,'Underside simulator lost material checksum marks');
   const flexPair=()=>page.$eval('#flex-pin',e=>[e.dataset.topFace,e.dataset.bottomFace,e.dataset.face]);
   assert.deepEqual(await flexPair(),['1','3','1'],'Trihexaflexagon must start on rooms/verso top-bottom state');
   const underRest=await page.$eval('#flex-under-art',e=>({opacity:Number(getComputedStyle(e).opacity),transform:getComputedStyle(e).transform}));
@@ -896,6 +905,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('#flex-under-art')).opacity)>=.48&&Number(getComputedStyle(document.querySelector('#flex-print .net-bottom')).opacity)>=.45,{timeout:600});
   const underFocus=await page.$eval('#flex-under-art',e=>Number(getComputedStyle(e).opacity));
   assert(underFocus>=.48,'Keyboard focus on the flex axis did not expose the underside enough to read its paired face');
+  const grainFocus=await page.$eval('#flex-face-art .flex-face.active .magic-grain',e=>Number(getComputedStyle(e).opacity));
+  assert(grainFocus>=.7,'Keyboard focus did not wake the material checksum enough to inspect it');
   const provenance=await page.evaluate(()=>({
     top:[...document.querySelectorAll('#flex-print .net-top')].map(x=>Number(getComputedStyle(x).opacity)),
     bottom:[...document.querySelectorAll('#flex-print .net-bottom')].map(x=>Number(getComputedStyle(x).opacity)),
