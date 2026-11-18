@@ -1,12 +1,12 @@
 (()=>{'use strict';
-const A=window.NBArtifactOrder,R=window.NBRouteSignature;
+const A=window.NBArtifactOrder,R=window.NBRouteSignature,E=window.NBReturnEcho;
 const ids=['folio','screen','flex'],profile='https://osu.ppy.sh/users/29089125#me';
 const done=ids.every(id=>localStorage.getItem('nb036-artifact-v1:'+id)==='1');
 const order=A?.order?.()||[];
 if(!A||!done||order.length!==3){location.replace('./verso.html');return}
 const stage=document.querySelector('.press-stage'),frame=document.querySelector('.press-frame'),plate=document.querySelector('#press-plate');
-const relay=document.querySelector('#press-relay'),download=document.querySelector('#press-download');
-const edition=R?.edition?.()||'night';
+const relay=document.querySelector('#press-relay'),download=document.querySelector('#press-download'),returnSigil=document.querySelector('#return-sigil');
+const edition=R?.edition?.()||'night',echo=E?.forOrder?.(order)||null;
 const palette=edition==='paper'?{folio:'#386770',screen:'#665577',flex:'#416773'}:{folio:'#9cc4c9',screen:'#b7adcb',flex:'#a6c7ce'};
 const starts={folio:{x:-42,y:28},screen:{x:36,y:-32},flex:{x:26,y:42}};
 const reg={folio:[92,92],screen:[308,92],flex:[200,314]};
@@ -44,11 +44,18 @@ const refreshExport=()=>{
   if(/<text|<image|https:|href=/i.test(svg))throw new Error('press export purity');
   exportUrl=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));download.href=exportUrl;download.download='036js-'+edition+'-chronology-press.svg';download.dataset.artifactOrder=order.join('-');
 };
+const revealReturnEcho=()=>{
+  if(!echo||!returnSigil)return;
+  returnSigil.innerHTML=E.markup(echo.code);
+  returnSigil.dataset.echoCode=echo.code;
+  returnSigil.dataset.artifactOrder=order.join('-');
+  returnSigil.removeAttribute('hidden');
+};
 const finish=()=>{
   if(!ids.every(id=>state[id].locked))return;
   localStorage.setItem('nb036-artifact-v4:press','1');frame.classList.add('solved');
   relay.href=profile;relay.tabIndex=0;relay.setAttribute('aria-hidden','false');
-  download.tabIndex=0;download.setAttribute('aria-hidden','false');refreshExport();
+  download.tabIndex=0;download.setAttribute('aria-hidden','false');refreshExport();revealReturnEcho();
 };
 const settle=id=>{
   const s=state[id];
