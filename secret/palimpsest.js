@@ -17,7 +17,21 @@ const glyph=(id,x,y,rank,angle)=>{
   return '<g class="afterprint-artifact-witness" data-artifact="'+id+'" data-rank="'+rank+'" transform="translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+angle.toFixed(1)+')">'+body+'</g>';
 };
 const rankRadius=[0,4.2,3.4,2.7,2.0];
-const styles='<style>.afterprint-base{fill:#111820;stroke:#536b79;stroke-width:.8}.afterprint-orbit{fill:none;stroke:#627986;stroke-width:.6;opacity:.28}.afterprint-station{fill:#718894;opacity:.16}.afterprint-station.selected{fill:#b8d0d2;opacity:.88}.afterprint-station-ring{fill:none;stroke:#b8d0d2;stroke-width:.9;opacity:.62}.afterprint-room{fill:#839ba5;opacity:.86}.afterprint-room.rank-1{fill:#b9d0d2}.afterprint-room.rank-4{opacity:.62}.afterprint-artifact-witness{fill:none;stroke:#b8d0d2;stroke-width:.75;stroke-linecap:round;stroke-linejoin:round;opacity:.72}.afterprint-route{fill:none;stroke:#9eb9be;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:.66}.afterprint-entry{fill:none;stroke:#a9c4c7;stroke-width:.7;stroke-dasharray:1.6 3;opacity:.46}.afterprint-core{fill:#c4d8d8;opacity:.78}.afterprint-homecoming-path{fill:none;stroke:#c2d8d8;stroke-width:1.05;stroke-linecap:round;stroke-dasharray:2 3;opacity:.7}</style>';
+const tokenCenters=[66,110,154],tokenSlots=[-10,-6,-2,2,6,10],tokenY=196;
+function tokenRegisters(token){
+  if(typeof token!=='string'||!/^[0-9a-z]{3}$/i.test(token))return '';
+  return [...token.toLowerCase()].map((ch,i)=>{
+    const v=parseInt(ch,36);if(!Number.isFinite(v)||v<0||v>35)return '';
+    const q=Math.floor(v/6),m=v%6,cx=tokenCenters[i],qx=cx+tokenSlots[q],mx=cx+tokenSlots[m];
+    return '<g class="proof-token-register" data-register="'+i+'">'+
+      '<path class="proof-token-rail" d="M'+(cx-12)+' '+tokenY+'H'+(cx+12)+'"/>'+
+      tokenSlots.map((o,j)=>'<circle class="proof-token-slot" data-slot="'+j+'" cx="'+(cx+o)+'" cy="'+tokenY+'" r=".55"/>').join('')+
+      '<path class="proof-token-q" data-slot="'+q+'" d="M'+qx+' '+(tokenY-4)+'V'+(tokenY-1)+'"/>'+
+      '<path class="proof-token-r" data-slot="'+m+'" d="M'+mx+' '+(tokenY+1)+'V'+(tokenY+4)+'"/>'+
+    '</g>';
+  }).join('');
+}
+const styles='<style>.afterprint-base{fill:#111820;stroke:#536b79;stroke-width:.8}.afterprint-orbit{fill:none;stroke:#627986;stroke-width:.6;opacity:.28}.afterprint-station{fill:#718894;opacity:.16}.afterprint-station.selected{fill:#b8d0d2;opacity:.88}.afterprint-station-ring{fill:none;stroke:#b8d0d2;stroke-width:.9;opacity:.62}.afterprint-room{fill:#839ba5;opacity:.86}.afterprint-room.rank-1{fill:#b9d0d2}.afterprint-room.rank-4{opacity:.62}.afterprint-artifact-witness{fill:none;stroke:#b8d0d2;stroke-width:.75;stroke-linecap:round;stroke-linejoin:round;opacity:.72}.afterprint-route{fill:none;stroke:#9eb9be;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:.66}.afterprint-entry{fill:none;stroke:#a9c4c7;stroke-width:.7;stroke-dasharray:1.6 3;opacity:.46}.afterprint-core{fill:#c4d8d8;opacity:.78}.afterprint-homecoming-path{fill:none;stroke:#c2d8d8;stroke-width:1.05;stroke-linecap:round;stroke-dasharray:2 3;opacity:.7}.proof-token-register{color:#8fa8af}.proof-token-rail{fill:none;stroke:currentColor;stroke-width:.35;opacity:.28}.proof-token-slot{fill:currentColor;opacity:.22}.proof-token-q,.proof-token-r{fill:none;stroke:#bfd3d4;stroke-width:.8;stroke-linecap:round;opacity:.72}</style>';
 function render(order,route,homecoming=false){
   if(!E||!validOrder(order)||!validRoute(route))return null;
   const hit=E.forOrder(order);if(!hit)return null;
@@ -43,8 +57,9 @@ function render(order,route,homecoming=false){
     '<path class="afterprint-route" d="'+routePath+'"/>'+
     '<path class="afterprint-entry" d="M'+lx+' '+ly+'L110 110"/>'+
     '<circle class="afterprint-core" cx="110" cy="110" r="2.6"/>'+
-    (homecoming?'<path class="afterprint-homecoming-path" d="M110 110L'+sx.toFixed(1)+' '+sy.toFixed(1)+'"/>':'');
-  return {markup,selected,sx,sy,order:order.slice(),route:route.slice(),homecoming:!!homecoming};
+    (homecoming?'<path class="afterprint-homecoming-path" d="M110 110L'+sx.toFixed(1)+' '+sy.toFixed(1)+'"/>':'')+
+    (homecoming?tokenRegisters(tokenFor(order,route)):'');
+  return {markup,selected,sx,sy,order:order.slice(),route:route.slice(),homecoming:!!homecoming,token:tokenFor(order,route)};
 }
 function tokenFor(order,route){
   if(!validOrder(order)||!validRoute(route)||!E)return null;
@@ -74,6 +89,6 @@ function svg(order,route,homecoming=true){
 window.NBPalimpsest=Object.freeze({
   rooms:Object.freeze(rooms.slice()),routes:Object.freeze(routes.map(x=>Object.freeze(x.slice()))),
   roomPos:Object.freeze({...roomPos}),stationPos:Object.freeze(stationPos.map(x=>Object.freeze(x.slice()))),
-  render,svg,tokenFor,decode
+  render,svg,tokenFor,decode,tokenRegisters
 });
 })();
