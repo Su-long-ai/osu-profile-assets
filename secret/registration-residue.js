@@ -4,25 +4,14 @@
   const id=parts[room];
   if(!id)return;
   const routeKey='nb036-route-v1:contacts',roomRouteKey='nb036-route-v1:rooms';
-  const accepted=new Set(Object.values(parts));
-  function routeOrder(key){
-    try{
-      const list=JSON.parse(localStorage.getItem(key)||'[]');
-      return Array.isArray(list)&&list.length===4&&new Set(list).size===4&&list.every(x=>accepted.has(x))?list:[];
-    }catch{return []}
-  }
-  function appendRoute(name){
-    let list=[];
-    try{const parsed=JSON.parse(localStorage.getItem(routeKey)||'[]');if(Array.isArray(parsed))list=parsed.filter(x=>accepted.has(x))}
-    catch{}
-    if(!list.includes(name)){list.push(name);localStorage.setItem(routeKey,JSON.stringify(list.slice(0,4)))}
-  }
+  const route=window.NBRouteSignature;
+  if(!route)return;
   function markContact(){
     if(localStorage.getItem('nb036-misc-v4:joined')==='1'&&location.hash==='#registered'){
       const contactKey='nb036-impression-v3:contact:'+id;
       const first=localStorage.getItem(contactKey)!=='1';
       localStorage.setItem(contactKey,'1');
-      if(first)appendRoute(id);
+      if(first)route.append(routeKey,id);
       const allContacts=Object.values(parts).every(part=>localStorage.getItem('nb036-impression-v3:contact:'+part)==='1');
       if(allContacts)void window.nightButterflyMetrics?.record('misc-contact').catch(()=>{});
     }
@@ -36,7 +25,7 @@
     hair.querySelectorAll('.route-memory-mark').forEach(x=>x.remove());
     stamp.classList.remove('route-memory');
     if(localStorage.getItem('nb036-verso-v1:seen')!=='1')return;
-    const rooms=routeOrder(roomRouteKey),contacts=routeOrder(routeKey);
+    const rooms=route.order(roomRouteKey),contacts=route.order(routeKey);
     if(rooms.length!==4||contacts.length!==4)return;
     const ri=rooms.indexOf(id),ci=contacts.indexOf(id),angles=[45,135,225,315];
     for(const [kind,i,radius] of [['room',ri,9],['contact',ci,4.3]]){

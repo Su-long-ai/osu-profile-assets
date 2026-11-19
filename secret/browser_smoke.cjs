@@ -1361,8 +1361,16 @@ assert.equal(invalidSingleEval.length,0,
   await open('signal.html');
   assert.equal(await page.$$eval('link[href*="registration-residue.css?v=2"]',xs=>xs.length),1,
     'Route-residue stylesheet revision is missing');
-  assert.equal(await page.$$eval('script[src*="registration-residue.js?v=7"]',xs=>xs.length),1,
+  assert.equal(await page.$$eval('script[src*="route-signature.js?v=2"]',xs=>xs.length),1,
+    'Shared route authority is missing from archive room');
+  assert.equal(await page.$$eval('script[src*="case.js?v=3"]',xs=>xs.length),1,
+    'Discovery writer is not using the shared route authority revision');
+  assert.equal(await page.$$eval('script[src*="registration-residue.js?v=8"]',xs=>xs.length),1,
     'Route-residue client revision is missing');
+  assert.equal(await page.evaluate(()=>typeof window.NBRouteSignature?.partial),'function',
+    'Shared route authority lost partial-route validation');
+  assert.equal(await page.evaluate(()=>typeof window.NBRouteSignature?.append),'function',
+    'Shared route authority lost canonical route append');
   assert.equal(await page.$$eval('.fragment-stamp.registered.route-memory',xs=>xs.length),1,
     'Third-read archive did not retain its personal registration residue');
   const routeResidue=await page.$$eval('.fragment-stamp .route-memory-mark',xs=>xs.map(x=>({
