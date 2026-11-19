@@ -48,7 +48,7 @@ function memoryMarkup(s,r){
   const first=pts[0];
   return (routePath?'<path class="post-route" d="'+routePath+'"/>':'')+
     (first?'<path class="post-route" d="M'+ex.toFixed(1)+' '+ey.toFixed(1)+'L'+first[0]+' '+first[1]+'"/>':'')+
-    rooms.map(id=>{const p=positions[id];return '<circle class="post-node '+(r.includes(id)?'visited':'')+'" data-post-room="'+id+'" cx="'+p[0]+'" cy="'+p[1]+'" r="2.1"/>'}).join('')+
+    rooms.map(id=>{const p=positions[id],rank=r.indexOf(id)+1,rad=rank?[2.7,2.2,1.8,1.4][rank-1]:1.2;return '<circle class="post-node '+(rank?'visited':'')+'" data-post-room="'+id+'" data-post-rank="'+(rank||0)+'" cx="'+p[0]+'" cy="'+p[1]+'" r="'+rad+'"/>'}).join('')+
     '<circle class="post-echo" cx="'+ex.toFixed(1)+'" cy="'+ey.toFixed(1)+'" r="5"/><circle class="post-echo-core" cx="'+ex.toFixed(1)+'" cy="'+ey.toFixed(1)+'" r="1.5"/>';
 }
 function renderHub(){
