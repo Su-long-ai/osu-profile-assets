@@ -1071,6 +1071,38 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$eval('#return-seal',e=>e.dataset.echoCode),'e9','Final seal lost the verified homepage station');
   assert.equal(await page.$$eval('#return-seal .echo-node.target',xs=>xs.length),1,'Final seal must preserve exactly one selected homepage station');
   await wordless();
+  const postRooms=[['signal.html','keys'],['sealed.html','margin'],['orbit.html','mirror'],['chronicle.html','dates']];
+  for(let i=0;i<postRooms.length;i++){
+    const [file,id]=postRooms[i];
+    await page.goto(returnBase+file,{waitUntil:'load'});
+    assert.equal(await page.$$eval('link[href*="post-return.css?v=1"]',xs=>xs.length),1,'Second-pass room stylesheet missing: '+file);
+    assert.equal(await page.$$eval('script[src*="post-return.js?v=1"]',xs=>xs.length),1,'Second-pass room recorder missing: '+file);
+    assert.equal(await page.$$eval('.fragment-stamp.post-return',xs=>xs.length),1,'Verified return did not alter old room fragment: '+file);
+    assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.postRank),String(i+1),'Second-pass visit rank drifted: '+file);
+    assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.returnCode),'e9','Second-pass room lost first-loop return station: '+file);
+    assert.equal(await page.$$eval('.post-return-notch',xs=>xs.length),1,'Second-pass room must carry one geometric aftermark: '+file);
+    const seen=await page.evaluate(()=>JSON.parse(localStorage.getItem('nb036-after-v1:route')||'[]'));
+    assert.deepEqual(seen,postRooms.slice(0,i+1).map(x=>x[1]),'Second-pass room route drifted after '+file);
+  }
+  await page.goto(returnBase,{waitUntil:'load'});
+  assert.equal(await page.$eval('#completion-seal',e=>e.getAttribute('href')),'./afterprint.html','Four post-return revisits did not retarget the completed hub seal');
+  assert.equal(await page.$$eval('#completion-seal.post-return-complete',xs=>xs.length),1,'Completed second pass did not mark the hub seal');
+  assert.equal(await page.$$eval('#completion-seal .post-return-memory .post-node.visited',xs=>xs.length),4,'Hub second-pass memory lost visited room nodes');
+  assert.equal(await page.$eval('#completion-seal .post-return-memory',e=>e.dataset.postRoute),'keys-margin-mirror-dates','Hub second-pass route provenance drifted');
+  await page.goto(returnBase+'afterprint.html',{waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('.afterprint-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('link[href*="afterprint.css?v=1"]',xs=>xs.length),1,'Afterprint stylesheet missing');
+  assert.equal(await page.$$eval('script[src*="afterprint.js?v=1"]',xs=>xs.length),1,'Afterprint client missing');
+  assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.returnCode),'e9','Afterprint lost first-loop station');
+  assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.postRoute),'keys-margin-mirror-dates','Afterprint lost second-pass room order');
+  assert.equal(await page.$$eval('.afterprint-station',xs=>xs.length),6,'Afterprint needs all six first-loop stations');
+  assert.equal(await page.$$eval('.afterprint-station.selected',xs=>xs.length),1,'Afterprint must select exactly one first-loop station');
+  assert.equal(await page.$$eval('.afterprint-room.visited',xs=>xs.length),4,'Afterprint lost one of four post-return rooms');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-after-v2:palimpsest')),'1','Afterprint did not persist its optional postgame completion');
+  const afterSvg=await page.$eval('#afterprint-download',async a=>await (await fetch(a.href)).text());
+  assert(afterSvg.includes('width="90mm" height="90mm"'),'Afterprint export lost physical dimensions');
+  assert(!/<text|<image|https:|href=/i.test(afterSvg),'Afterprint export leaked text, raster, URL, or external dependency');
+  await wordless();
   await page.goto(returnBase+'press.html',{waitUntil:'load'});
   await page.waitForFunction(()=>!document.querySelector('.press-stage')?.hidden,{timeout:5000});
   await page.click('.breadcrumb');
