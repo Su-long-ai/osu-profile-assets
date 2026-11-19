@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const rooms=['keys','dates','mirror','margin'],artifacts=['folio','screen','flex'];
+const rooms=['keys','dates','mirror','margin'],artifacts=['folio','screen','flex'],A=window.NBArtifactOrder;
 const seal=()=>document.querySelector('#completion-seal');
 const foundAll=()=>rooms.every(id=>localStorage.getItem('nb036-misc-v3:'+id)==='1');
 const joined=()=>localStorage.getItem('nb036-misc-v4:joined')==='1';
@@ -8,10 +8,7 @@ const aligned=()=>localStorage.getItem('nb036-impression-v1:aligned')==='1';
 const contactsAll=()=>rooms.every(id=>localStorage.getItem('nb036-impression-v3:contact:'+id)==='1');
 const versoSeen=()=>localStorage.getItem('nb036-verso-v1:seen')==='1';
 const artifactsAll=()=>artifacts.every(id=>localStorage.getItem('nb036-artifact-v1:'+id)==='1');
-const artifactOrder=()=>{try{
-  const x=JSON.parse(localStorage.getItem('nb036-artifact-v2:order')||'[]');
-  return Array.isArray(x)&&x.length===3&&new Set(x).size===3&&x.every(id=>artifacts.includes(id))?x:[];
-}catch{return []}};
+const artifactOrder=()=>A?.order?.()||[];
 const pressDone=()=>localStorage.getItem('nb036-artifact-v4:press')==='1';
 const returnState=()=>window.NBPostReturn?.state?.()||null;
 const postRoute=()=>window.NBPostReturn?.route?.()||[];

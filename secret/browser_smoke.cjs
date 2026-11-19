@@ -1078,7 +1078,8 @@ assert.equal(invalidSingleEval.length,0,
     const [file,id]=postRooms[i];
     await page.goto(returnBase+file,{waitUntil:'load'});
     assert.equal(await page.$$eval('link[href*="post-return.css?v=1"]',xs=>xs.length),1,'Second-pass room stylesheet missing: '+file);
-    assert.equal(await page.$$eval('script[src*="post-return.js?v=1"]',xs=>xs.length),1,'Second-pass room recorder missing: '+file);
+    assert.equal(await page.$$eval('script[src*="artifact-order.js?v=3"]',xs=>xs.length),1,'Second-pass room lost canonical artifact-order authority: '+file);
+    assert.equal(await page.$$eval('script[src*="post-return.js?v=2"]',xs=>xs.length),1,'Second-pass room recorder missing: '+file);
     assert.equal(await page.$$eval('.fragment-stamp.post-return',xs=>xs.length),1,'Verified return did not alter old room fragment: '+file);
     assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.postRank),String(i+1),'Second-pass visit rank drifted: '+file);
     assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.returnCode),'e9','Second-pass room lost first-loop return station: '+file);

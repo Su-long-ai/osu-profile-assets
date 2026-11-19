@@ -1,15 +1,10 @@
 (()=>{'use strict';
-const E=window.NBReturnEcho;
+const E=window.NBReturnEcho,A=window.NBArtifactOrder;
 const rooms=['keys','dates','mirror','margin'],accepted=new Set(rooms);
 const pageMap={signal:'keys',chronicle:'dates',orbit:'mirror',sealed:'margin'};
 const routeKey='nb036-after-v1:route';
 const positions={keys:[31,31],dates:[69,31],mirror:[31,69],margin:[69,69]};
-function artifactOrder(){
-  try{
-    const x=JSON.parse(localStorage.getItem('nb036-artifact-v2:order')||'[]');
-    return Array.isArray(x)&&x.length===3&&new Set(x).size===3&&x.every(v=>['folio','screen','flex'].includes(v))?x:[];
-  }catch{return []}
-}
+function artifactOrder(){return A?.order?.()||[]}
 function state(){
   if(!E||localStorage.getItem('nb036-artifact-v4:press')!=='1')return null;
   const order=artifactOrder(),code=localStorage.getItem('nb036-artifact-v5:return')||'';
