@@ -39,11 +39,11 @@ assert.equal(invalidSingleEval.length,0,
   for(let attempt=0;attempt<(firstPage?16:1);attempt++){
    res=await page.goto(base+name+'?v='+cacheBuster+'-'+attempt,{waitUntil:'load',timeout:27000});
    css=await page.evaluate(()=>document.querySelector('link[href*="silent.css"]')?.getAttribute('href')||'');
-   if(res.status()===200&&css.includes(expectedCSS))break;
+   if((res.status()===200||res.status()===304)&&css.includes(expectedCSS))break;
    await new Promise(resolve=>setTimeout(resolve,2000));
   }
   firstPage=false;
-  assert.equal(res.status(),200,name+' not ready: '+res.status());
+  assert([200,304].includes(res.status()),name+' not ready: '+res.status());
   assert(css.includes(expectedCSS),name+' served stale artwork: '+css);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'horizontal overflow: '+name);
  }
@@ -1092,7 +1092,9 @@ assert.equal(invalidSingleEval.length,0,
   await page.goto(returnBase+'afterprint.html',{waitUntil:'load'});
   await page.waitForFunction(()=>!document.querySelector('.afterprint-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="afterprint.css?v=2"]',xs=>xs.length),1,'Afterprint stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="afterprint.js?v=2"]',xs=>xs.length),1,'Afterprint client missing');
+  assert.equal(await page.$$eval('script[src*="profile-replay.js?v=1"]',xs=>xs.length),1,'Afterprint lost public-profile replay authority');
+  assert.equal(await page.$$eval('link[href*="profile-replay.css?v=1"]',xs=>xs.length),1,'Afterprint lost public-profile replay styling');
+  assert.equal(await page.$$eval('script[src*="afterprint.js?v=3"]',xs=>xs.length),1,'Afterprint client missing');
   assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.returnCode),'e9','Afterprint lost first-loop station');
   assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.postRoute),'keys-margin-mirror-dates','Afterprint lost second-pass room order');
   assert.equal(await page.$$eval('.afterprint-station',xs=>xs.length),6,'Afterprint needs all six first-loop stations');
@@ -1101,11 +1103,47 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('.afterprint-artifact-witness',xs=>xs.length),3,'Afterprint lost first-loop physical chronology witnesses');
   assert.deepEqual(await page.$$eval('.afterprint-room',xs=>xs.map(x=>Number(x.getAttribute('r'))).sort((a,b)=>b-a)),[4.2,3.4,2.7,2.0],'Afterprint room sizes no longer visibly encode second-pass direction');
   assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.artifactOrder),'screen-folio-flex','Afterprint lost first-loop artifact order');
+  assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.homecoming),'false','Fresh afterprint fabricated a closed public-profile loop');
+  assert.equal(await page.$$eval('.afterprint-homecoming-path',xs=>xs.length),0,'Fresh afterprint visually leaked its final closure');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-after-v2:palimpsest')),'1','Afterprint did not persist its optional postgame completion');
   const afterSvg=await page.$eval('#afterprint-download',async a=>await (await fetch(a.href)).text());
   assert(afterSvg.includes('width="90mm" height="90mm"'),'Afterprint export lost physical dimensions');
   assert(!/<text|<image|https:|href=/i.test(afterSvg),'Afterprint export leaked text, raster, URL, or external dependency');
   await wordless();
+
+  // The center relay arms the public osu! profile itself as the final four-step input device.
+  await page.$eval('#afterprint-relay',e=>{
+    e.addEventListener('click',ev=>ev.preventDefault(),{once:true,capture:true});
+    e.click();
+  });
+  assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-after-v3:profile-replay-arm')),'1','Afterprint relay did not arm public-profile replay');
+  for(let i=0;i<postRooms.length;i++){
+    const [file,id]=postRooms[i];
+    await page.goto(returnBase+file+'?source=profile',{waitUntil:'load'});
+    assert.equal(await page.$$eval('script[src*="profile-replay.js?v=1"]',xs=>xs.length),1,'Public-profile replay client missing in '+file);
+    assert.equal(await page.$$eval('.fragment-stamp.profile-replay-ack',xs=>xs.length),1,'Correct public-profile room click was not acknowledged: '+file);
+    assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.profileRank),String(i+1),'Public-profile replay rank drifted: '+file);
+    assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.profileProgress),String(i+1),'Public-profile replay progress drifted: '+file);
+    assert.equal(await page.$$eval('.profile-replay-mark',xs=>xs.length),1,'Public-profile replay should leave one geometric acknowledgement: '+file);
+    const replay=await page.evaluate(()=>JSON.parse(localStorage.getItem('nb036-after-v3:profile-replay-progress')||'[]'));
+    assert.deepEqual(replay,postRooms.slice(0,i+1).map(x=>x[1]),'Public-profile replay sequence drifted after '+file);
+    if(i===postRooms.length-1){
+      assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-after-v3:homecoming')),'1','Fourth public-profile input did not close homecoming');
+      assert.equal(await page.$eval('.fragment-stamp',e=>e.getAttribute('href')),'./afterprint.html#homecoming','Final public-profile room did not route back to the personal plate');
+    }
+  }
+  await page.goto(returnBase+'afterprint.html#homecoming',{waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('.afterprint-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.homecoming),'true','Homecoming revisit did not seal the personal plate');
+  assert.equal(await page.$$eval('.afterprint-homecoming-path',xs=>xs.length),1,'Homecoming must add exactly one final geometric closure');
+  assert.equal(await page.$$eval('.afterprint-frame.homecoming',xs=>xs.length),1,'Homecoming plate lost its sealed visual state');
+  assert.equal(await page.$eval('#afterprint-download',a=>a.download),'036js-homecoming.svg','Closed plate did not promote its physical export');
+  assert.equal(await page.$eval('#afterprint-download',a=>a.dataset.homecoming),'true','Closed plate export lost homecoming provenance');
+  const homeSvg=await page.$eval('#afterprint-download',async a=>await (await fetch(a.href)).text());
+  assert(homeSvg.includes('class="afterprint-homecoming-path"'),'Closed physical export lost the final circuit segment');
+  assert(!/<text|<image|https:|href=/i.test(homeSvg),'Homecoming export leaked text, raster, URL, or external dependency');
+  await wordless();
+
   await page.goto(returnBase+'press.html',{waitUntil:'load'});
   await page.waitForFunction(()=>!document.querySelector('.press-stage')?.hidden,{timeout:5000});
   await page.click('.breadcrumb');
