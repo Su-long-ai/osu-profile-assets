@@ -1091,10 +1091,11 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$eval('#completion-seal .post-return-memory',e=>e.dataset.postRoute),'keys-margin-mirror-dates','Hub second-pass route provenance drifted');
   await page.goto(returnBase+'afterprint.html',{waitUntil:'load'});
   await page.waitForFunction(()=>!document.querySelector('.afterprint-stage')?.hidden,{timeout:5000});
-  assert.equal(await page.$$eval('link[href*="afterprint.css?v=2"]',xs=>xs.length),1,'Afterprint stylesheet missing');
+  assert.equal(await page.$$eval('link[href*="afterprint.css?v=3"]',xs=>xs.length),1,'Afterprint stylesheet missing');
   assert.equal(await page.$$eval('script[src*="profile-replay.js?v=1"]',xs=>xs.length),1,'Afterprint lost public-profile replay authority');
   assert.equal(await page.$$eval('link[href*="profile-replay.css?v=1"]',xs=>xs.length),1,'Afterprint lost public-profile replay styling');
-  assert.equal(await page.$$eval('script[src*="afterprint.js?v=3"]',xs=>xs.length),1,'Afterprint client missing');
+  assert.equal(await page.$$eval('script[src*="palimpsest.js?v=1"]',xs=>xs.length),1,'Afterprint lost shared palimpsest renderer');
+  assert.equal(await page.$$eval('script[src*="afterprint.js?v=4"]',xs=>xs.length),1,'Afterprint client missing');
   assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.returnCode),'e9','Afterprint lost first-loop station');
   assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.postRoute),'keys-margin-mirror-dates','Afterprint lost second-pass room order');
   assert.equal(await page.$$eval('.afterprint-station',xs=>xs.length),6,'Afterprint needs all six first-loop stations');
@@ -1105,6 +1106,7 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.artifactOrder),'screen-folio-flex','Afterprint lost first-loop artifact order');
   assert.equal(await page.$eval('#afterprint-plate',e=>e.dataset.homecoming),'false','Fresh afterprint fabricated a closed public-profile loop');
   assert.equal(await page.$$eval('.afterprint-homecoming-path',xs=>xs.length),0,'Fresh afterprint visually leaked its final closure');
+  assert(await page.$eval('#afterprint-share',e=>e.hasAttribute('hidden')),'Fresh afterprint exposed a portable proof before homecoming');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-after-v2:palimpsest')),'1','Afterprint did not persist its optional postgame completion');
   const afterSvg=await page.$eval('#afterprint-download',async a=>await (await fetch(a.href)).text());
   assert(afterSvg.includes('width="90mm" height="90mm"'),'Afterprint export lost physical dimensions');
@@ -1139,9 +1141,24 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(await page.$$eval('.afterprint-frame.homecoming',xs=>xs.length),1,'Homecoming plate lost its sealed visual state');
   assert.equal(await page.$eval('#afterprint-download',a=>a.download),'036js-homecoming.svg','Closed plate did not promote its physical export');
   assert.equal(await page.$eval('#afterprint-download',a=>a.dataset.homecoming),'true','Closed plate export lost homecoming provenance');
+  const proofToken=await page.$eval('#afterprint-share',a=>a.dataset.proofToken);
+  assert(/^[0-9a-z]{3}$/.test(proofToken),'Homecoming did not derive a compact portable-proof token');
+  assert.equal(await page.$eval('#afterprint-share',a=>a.getAttribute('href')),'./proof.html#'+proofToken,'Portable-proof link drifted from its token');
+  assert.equal(await page.$eval('#afterprint-share',a=>a.hasAttribute('hidden')),false,'Homecoming kept portable proof hidden');
+  const homeMarkup=await page.$eval('#afterprint-plate',e=>e.innerHTML);
   const homeSvg=await page.$eval('#afterprint-download',async a=>await (await fetch(a.href)).text());
   assert(homeSvg.includes('class="afterprint-homecoming-path"'),'Closed physical export lost the final circuit segment');
   assert(!/<text|<image|https:|href=/i.test(homeSvg),'Homecoming export leaked text, raster, URL, or external dependency');
+  await wordless();
+
+  await page.goto(returnBase+'proof.html#'+proofToken,{waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('.proof-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$$eval('script[src*="palimpsest.js?v=1"]',xs=>xs.length),1,'Portable proof lost shared palimpsest renderer');
+  assert.equal(await page.$eval('#proof-plate',e=>e.dataset.proofToken),proofToken,'Portable proof decoded the wrong token');
+  assert.equal(await page.$eval('#proof-plate',e=>e.innerHTML),homeMarkup,'Portable proof geometry diverged from homecoming');
+  const proofSvg=await page.$eval('#proof-download',async a=>await (await fetch(a.href)).text());
+  assert.equal(proofSvg,homeSvg,'Portable proof physical export diverged from homecoming SVG');
+  assert.equal(await page.$eval('#proof-download',a=>a.download),'036js-proof-'+proofToken+'.svg','Portable proof download name lost its checked token');
   await wordless();
 
   await page.goto(returnBase+'press.html',{waitUntil:'load'});
