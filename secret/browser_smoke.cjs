@@ -1066,7 +1066,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.goto(returnBase+'return.html?sig=e9&source=profile',{waitUntil:'load'});
   assert.equal(await page.$$eval('link[href*="return.css?v=1"]',xs=>xs.length),1,'Homepage-return verifier stylesheet missing');
   assert.equal(await page.$$eval('script[src*="return-echo.js?v=1"]',xs=>xs.length),1,'Homepage-return verifier lost shared station authority');
-  assert.equal(await page.$$eval('script[src*="return.js?v=1"]',xs=>xs.length),1,'Homepage-return verifier client missing');
+  assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=1"]',xs=>xs.length),1,'Homepage-return verifier lost portable-proof challenge bridge');
+  assert.equal(await page.$$eval('script[src*="return.js?v=2"]',xs=>xs.length),1,'Homepage-return verifier client missing');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-artifact-v5:return')),'e9','Correct homepage footer station did not close the return loop');
   assert.equal(await page.$eval('#return-seal',e=>e.dataset.echoCode),'e9','Final seal lost the verified homepage station');
   assert.equal(await page.$$eval('#return-seal .echo-node.target',xs=>xs.length),1,'Final seal must preserve exactly one selected homepage station');
@@ -1154,11 +1155,50 @@ assert.equal(invalidSingleEval.length,0,
   await page.goto(returnBase+'proof.html#'+proofToken,{waitUntil:'load'});
   await page.waitForFunction(()=>!document.querySelector('.proof-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('script[src*="palimpsest.js?v=1"]',xs=>xs.length),1,'Portable proof lost shared palimpsest renderer');
+  assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=1"]',xs=>xs.length),1,'Portable proof lost public-profile signature verifier');
+  assert.equal(await page.$$eval('script[src*="proof.js?v=2"]',xs=>xs.length),1,'Portable proof client revision missing');
   assert.equal(await page.$eval('#proof-plate',e=>e.dataset.proofToken),proofToken,'Portable proof decoded the wrong token');
   assert.equal(await page.$eval('#proof-plate',e=>e.innerHTML),homeMarkup,'Portable proof geometry diverged from homecoming');
+  assert.equal(await page.$eval('#proof-plate',e=>e.dataset.verified),'false','Fresh portable proof fabricated local verification');
+  assert.equal(await page.$$eval('.proof-verified-ring',xs=>xs.length),0,'Fresh portable proof leaked verification ring');
+  assert.equal(await page.$eval('#proof-verify',e=>e.hasAttribute('hidden')),false,'Fresh portable proof hid its public-profile verifier');
   const proofSvg=await page.$eval('#proof-download',async a=>await (await fetch(a.href)).text());
   assert.equal(proofSvg,homeSvg,'Portable proof physical export diverged from homecoming SVG');
   assert.equal(await page.$eval('#proof-download',a=>a.download),'036js-proof-'+proofToken+'.svg','Portable proof download name lost its checked token');
+  await wordless();
+
+  // Verify the shared proof by replaying its full five-key signature on the already-live profile hotspots.
+  await page.$eval('#proof-verify',e=>{
+    e.addEventListener('click',ev=>ev.preventDefault(),{once:true,capture:true});
+    e.click();
+  });
+  const proofChallenge=await page.evaluate(()=>window.NBProofChallenge.active());
+  assert.equal(proofChallenge.token,proofToken,'Portable proof verifier armed the wrong token');
+  assert.equal(proofChallenge.footer,'e9','Portable proof verifier derived the wrong footer station');
+  assert.deepEqual(proofChallenge.route,['keys','margin','mirror','dates'],'Portable proof verifier derived the wrong room route');
+  assert.equal(proofChallenge.step,0,'Portable proof verifier did not start at signature step zero');
+  const footerAccept=await page.evaluate(()=>window.NBProofChallenge.acceptFooter('e9'));
+  assert.equal(footerAccept.accepted,true,'Portable proof verifier rejected its own footer station');
+  assert.equal(footerAccept.step,1,'Portable proof footer did not advance to step one');
+  for(let i=0;i<postRooms.length;i++){
+    const [file,id]=postRooms[i];
+    await page.goto(returnBase+file+'?source=profile',{waitUntil:'load'});
+    assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=1"]',xs=>xs.length),1,'Portable proof verifier missing from '+file);
+    assert.equal(await page.$$eval('.source-reference.proof-challenge-ack',xs=>xs.length),1,'Portable proof room input was not acknowledged: '+file);
+    assert.equal(await page.$eval('.source-reference',e=>e.dataset.proofStep),String(i+2),'Portable proof signature step drifted: '+file);
+    assert.equal(await page.$eval('.source-reference',e=>e.dataset.proofToken),proofToken,'Portable proof token drifted in '+file);
+    if(i===postRooms.length-1){
+      assert.equal(await page.$$eval('.source-reference.proof-challenge-complete',xs=>xs.length),1,'Fifth public-profile input did not complete proof verification');
+      assert.equal(await page.$eval('.source-reference',e=>e.getAttribute('href')),'./proof.html#'+proofToken,'Verified profile signature did not return to its proof');
+    }
+  }
+  await page.goto(returnBase+'proof.html#'+proofToken,{waitUntil:'load'});
+  await page.waitForFunction(()=>!document.querySelector('.proof-stage')?.hidden,{timeout:5000});
+  assert.equal(await page.$eval('#proof-plate',e=>e.dataset.verified),'true','Completed five-key profile signature did not verify proof');
+  assert.equal(await page.$$eval('.proof-verified-ring',xs=>xs.length),1,'Verified portable proof lost its local verification ring');
+  assert.equal(await page.$eval('#proof-verify',e=>e.hasAttribute('hidden')),true,'Verified portable proof kept its verifier active');
+  const verifiedProofSvg=await page.$eval('#proof-download',async a=>await (await fetch(a.href)).text());
+  assert.equal(verifiedProofSvg,homeSvg,'Local proof verification changed the canonical portable SVG');
   await wordless();
 
   await page.goto(returnBase+'press.html',{waitUntil:'load'});

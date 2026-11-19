@@ -1,4 +1,5 @@
 (()=>{'use strict';
+if(window.NBProofChallenge?.handleFooter?.())return;
 const A=window.NBArtifactOrder,E=window.NBReturnEcho,profile='https://osu.ppy.sh/users/29089125#me';
 const order=A?.order?.()||[],expected=E?.forOrder?.(order)||null;
 const code=new URLSearchParams(location.search).get('sig')||'';
