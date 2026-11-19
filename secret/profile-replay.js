@@ -1,6 +1,7 @@
 (()=>{'use strict';
-const P=window.NBPostReturn;
+const P=window.NBPostReturn,I=window.NBProfileInput;
 const armKey='nb036-after-v3:profile-replay-arm';
+const ownerStampKey='nb036-after-v4:profile-input';
 const progressKey='nb036-after-v3:profile-replay-progress';
 const doneKey='nb036-after-v3:homecoming';
 const pageMap={signal:'keys',chronicle:'dates',orbit:'mirror',sealed:'margin'};
@@ -17,9 +18,19 @@ function progress(){
   }catch{localStorage.removeItem(progressKey);return []}
 }
 function done(){return !!base()&&localStorage.getItem(doneKey)==='1'}
-function armed(){return !!base()&&localStorage.getItem(armKey)==='1'&&!done()}
+function armed(){
+  if(!base()||localStorage.getItem(armKey)!=='1'||done())return false;
+  if(!I)return true;
+  if(!I.owner()){
+    if(localStorage.getItem(ownerStampKey)==='1')return false;
+    I.claim('homecoming');
+  }
+  return I.is('homecoming');
+}
 function arm(){
   if(!base()||done())return false;
+  I?.claim?.('homecoming');
+  localStorage.setItem(ownerStampKey,'1');
   localStorage.setItem(armKey,'1');localStorage.removeItem(progressKey);return true;
 }
 function accept(id){
@@ -29,7 +40,7 @@ function accept(id){
   else p=id===b.r[0]?[id]:[];
   if(p.length)localStorage.setItem(progressKey,JSON.stringify(p));else localStorage.removeItem(progressKey);
   if(p.length===4){
-    localStorage.setItem(doneKey,'1');localStorage.removeItem(armKey);accepted=true;
+    localStorage.setItem(doneKey,'1');localStorage.removeItem(armKey);localStorage.removeItem(ownerStampKey);I?.release?.('homecoming');accepted=true;
   }
   return {accepted,progress:p.slice(),done:done()};
 }

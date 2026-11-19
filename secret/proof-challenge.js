@@ -1,11 +1,11 @@
 (()=>{'use strict';
-const profile='https://osu.ppy.sh/users/29089125#me';
+const profile='https://osu.ppy.sh/users/29089125#me',I=window.NBProfileInput;
 const key='nb036-proof-v1:challenge',verifiedKey='nb036-proof-v1:verified';
 const rooms=['keys','dates','mirror','margin'],roomSet=new Set(rooms);
 const pageMap={signal:'keys',chronicle:'dates',orbit:'mirror',sealed:'margin'};
 const valid=x=>x&&typeof x==='object'&&/^[0-9a-z]{3}$/.test(x.token||'')&&/^[0-9a-z]{2}$/.test(x.footer||'')&&
   Array.isArray(x.route)&&x.route.length===4&&new Set(x.route).size===4&&x.route.every(v=>roomSet.has(v))&&
-  Number.isInteger(x.step)&&x.step>=0&&x.step<=5;
+  Number.isInteger(x.step)&&x.step>=0&&x.step<=5&&(x.inputVersion===undefined||x.inputVersion===1);
 function read(){
   try{const x=JSON.parse(localStorage.getItem(key)||'null');if(!valid(x))throw 0;return x}
   catch{localStorage.removeItem(key);return null}
@@ -16,18 +16,28 @@ function arm(token){
   if(!d)return false;
   const hit=E?.forOrder?.(d.order)||null;if(!hit)return false;
   localStorage.removeItem(verifiedKey);
-  write({token:d.token,footer:hit.code,route:d.route.slice(),step:0});
+  I?.claim?.('proof:'+d.token);
+  write({token:d.token,footer:hit.code,route:d.route.slice(),step:0,inputVersion:1});
   return true;
 }
 function active(){return read()}
 function verified(token){return localStorage.getItem(verifiedKey)===(token||'')}
+function owns(x){
+  if(!x)return false;
+  if(!I)return true;
+  if(!I.owner()){
+    if(x.inputVersion===1)return false;
+    I.claim('proof:'+x.token);x.inputVersion=1;write(x);
+  }
+  return I.is('proof:'+x.token);
+}
 function acceptFooter(code){
-  const x=read();if(!x)return {participating:false,accepted:false,step:0,token:''};
+  const x=read();if(!x||!owns(x))return {participating:false,accepted:false,step:x?.step||0,token:x?.token||''};
   x.step=code===x.footer?1:0;write(x);
   return {participating:true,accepted:x.step===1,step:x.step,token:x.token};
 }
 function handleFooter(){
-  const x=read();if(!x||new URLSearchParams(location.search).get('source')!=='profile')return false;
+  const x=read();if(!x||!owns(x)||new URLSearchParams(location.search).get('source')!=='profile')return false;
   acceptFooter(new URLSearchParams(location.search).get('sig')||'');
   location.replace(profile);
   return true;
@@ -38,11 +48,11 @@ function roomId(){
 }
 function handleRoom(id=roomId()){
   const x=read(),fromProfile=new URLSearchParams(location.search).get('source')==='profile';
-  if(!x||!fromProfile||!roomSet.has(id))return {participating:false,accepted:false,done:false,step:x?.step||0,token:x?.token||''};
+  if(!x||!owns(x)||!fromProfile||!roomSet.has(id))return {participating:false,accepted:false,done:false,step:x?.step||0,token:x?.token||''};
   let accepted=false;
   if(x.step>=1&&x.step<=4&&id===x.route[x.step-1]){x.step++;accepted=true}
   else x.step=0;
-  if(x.step===5)localStorage.setItem(verifiedKey,x.token);
+  if(x.step===5){localStorage.setItem(verifiedKey,x.token);I?.release?.('proof:'+x.token)}
   write(x);
   return {participating:true,accepted,done:x.step===5,step:x.step,token:x.token};
 }

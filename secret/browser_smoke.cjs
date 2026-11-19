@@ -1066,7 +1066,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.goto(returnBase+'return.html?sig=e9&source=profile',{waitUntil:'load'});
   assert.equal(await page.$$eval('link[href*="return.css?v=1"]',xs=>xs.length),1,'Homepage-return verifier stylesheet missing');
   assert.equal(await page.$$eval('script[src*="return-echo.js?v=1"]',xs=>xs.length),1,'Homepage-return verifier lost shared station authority');
-  assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=1"]',xs=>xs.length),1,'Homepage-return verifier lost portable-proof challenge bridge');
+  assert.equal(await page.$$eval('script[src*="profile-input.js?v=1"]',xs=>xs.length),1,'Homepage-return verifier lost shared profile-input authority');
+  assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=2"]',xs=>xs.length),1,'Homepage-return verifier lost portable-proof challenge bridge');
   assert.equal(await page.$$eval('script[src*="return.js?v=2"]',xs=>xs.length),1,'Homepage-return verifier client missing');
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-artifact-v5:return')),'e9','Correct homepage footer station did not close the return loop');
   assert.equal(await page.$eval('#return-seal',e=>e.dataset.echoCode),'e9','Final seal lost the verified homepage station');
@@ -1093,7 +1094,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.goto(returnBase+'afterprint.html',{waitUntil:'load'});
   await page.waitForFunction(()=>!document.querySelector('.afterprint-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('link[href*="afterprint.css?v=4"]',xs=>xs.length),1,'Afterprint stylesheet missing');
-  assert.equal(await page.$$eval('script[src*="profile-replay.js?v=1"]',xs=>xs.length),1,'Afterprint lost public-profile replay authority');
+  assert.equal(await page.$$eval('script[src*="profile-input.js?v=1"]',xs=>xs.length),1,'Afterprint lost shared public-profile input authority');
+  assert.equal(await page.$$eval('script[src*="profile-replay.js?v=2"]',xs=>xs.length),1,'Afterprint lost public-profile replay authority');
   assert.equal(await page.$$eval('link[href*="profile-replay.css?v=1"]',xs=>xs.length),1,'Afterprint lost public-profile replay styling');
   assert.equal(await page.$$eval('script[src*="palimpsest.js?v=2"]',xs=>xs.length),1,'Afterprint lost shared palimpsest renderer');
   assert.equal(await page.$$eval('script[src*="afterprint.js?v=4"]',xs=>xs.length),1,'Afterprint client missing');
@@ -1121,10 +1123,12 @@ assert.equal(invalidSingleEval.length,0,
     e.click();
   });
   assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-after-v3:profile-replay-arm')),'1','Afterprint relay did not arm public-profile replay');
+  assert.equal(await page.evaluate(()=>window.NBProfileInput.owner()),'homecoming','Afterprint replay did not own shared public-profile input');
   for(let i=0;i<postRooms.length;i++){
     const [file,id]=postRooms[i];
     await page.goto(returnBase+file+'?source=profile',{waitUntil:'load'});
-    assert.equal(await page.$$eval('script[src*="profile-replay.js?v=1"]',xs=>xs.length),1,'Public-profile replay client missing in '+file);
+    assert.equal(await page.$$eval('script[src*="profile-input.js?v=1"]',xs=>xs.length),1,'Shared profile-input authority missing in '+file);
+    assert.equal(await page.$$eval('script[src*="profile-replay.js?v=2"]',xs=>xs.length),1,'Public-profile replay client missing in '+file);
     assert.equal(await page.$$eval('.fragment-stamp.profile-replay-ack',xs=>xs.length),1,'Correct public-profile room click was not acknowledged: '+file);
     assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.profileRank),String(i+1),'Public-profile replay rank drifted: '+file);
     assert.equal(await page.$eval('.fragment-stamp',e=>e.dataset.profileProgress),String(i+1),'Public-profile replay progress drifted: '+file);
@@ -1133,6 +1137,7 @@ assert.equal(invalidSingleEval.length,0,
     assert.deepEqual(replay,postRooms.slice(0,i+1).map(x=>x[1]),'Public-profile replay sequence drifted after '+file);
     if(i===postRooms.length-1){
       assert.equal(await page.evaluate(()=>localStorage.getItem('nb036-after-v3:homecoming')),'1','Fourth public-profile input did not close homecoming');
+      assert.equal(await page.evaluate(()=>window.NBProfileInput.owner()),null,'Completed homecoming did not release shared public-profile input');
       assert.equal(await page.$eval('.fragment-stamp',e=>e.getAttribute('href')),'./afterprint.html#homecoming','Final public-profile room did not route back to the personal plate');
     }
   }
@@ -1171,7 +1176,8 @@ assert.equal(invalidSingleEval.length,0,
   await page.goto(returnBase+'proof.html#'+proofToken,{waitUntil:'load'});
   await page.waitForFunction(()=>!document.querySelector('.proof-stage')?.hidden,{timeout:5000});
   assert.equal(await page.$$eval('script[src*="palimpsest.js?v=2"]',xs=>xs.length),1,'Portable proof lost shared palimpsest renderer');
-  assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=1"]',xs=>xs.length),1,'Portable proof lost public-profile signature verifier');
+  assert.equal(await page.$$eval('script[src*="profile-input.js?v=1"]',xs=>xs.length),1,'Portable proof lost shared profile-input authority');
+  assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=2"]',xs=>xs.length),1,'Portable proof lost public-profile signature verifier');
   assert.equal(await page.$$eval('script[src*="proof.js?v=2"]',xs=>xs.length),1,'Portable proof client revision missing');
   assert.equal(await page.$eval('#proof-plate',e=>e.dataset.proofToken),proofToken,'Portable proof decoded the wrong token');
   assert.equal(await page.$$eval('#proof-plate .proof-token-register',xs=>xs.length),3,'Portable proof lost physical token registers');
@@ -1195,18 +1201,21 @@ assert.equal(invalidSingleEval.length,0,
   assert.equal(proofChallenge.footer,'e9','Portable proof verifier derived the wrong footer station');
   assert.deepEqual(proofChallenge.route,['keys','margin','mirror','dates'],'Portable proof verifier derived the wrong room route');
   assert.equal(proofChallenge.step,0,'Portable proof verifier did not start at signature step zero');
+  assert.equal(await page.evaluate(()=>window.NBProfileInput.owner()),'proof:'+proofToken,'Portable proof verifier did not own shared public-profile input');
   const footerAccept=await page.evaluate(()=>window.NBProofChallenge.acceptFooter('e9'));
   assert.equal(footerAccept.accepted,true,'Portable proof verifier rejected its own footer station');
   assert.equal(footerAccept.step,1,'Portable proof footer did not advance to step one');
   for(let i=0;i<postRooms.length;i++){
     const [file,id]=postRooms[i];
     await page.goto(returnBase+file+'?source=profile',{waitUntil:'load'});
-    assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=1"]',xs=>xs.length),1,'Portable proof verifier missing from '+file);
+    assert.equal(await page.$$eval('script[src*="profile-input.js?v=1"]',xs=>xs.length),1,'Shared profile-input authority missing during proof replay: '+file);
+    assert.equal(await page.$$eval('script[src*="proof-challenge.js?v=2"]',xs=>xs.length),1,'Portable proof verifier missing from '+file);
     assert.equal(await page.$$eval('.source-reference.proof-challenge-ack',xs=>xs.length),1,'Portable proof room input was not acknowledged: '+file);
     assert.equal(await page.$eval('.source-reference',e=>e.dataset.proofStep),String(i+2),'Portable proof signature step drifted: '+file);
     assert.equal(await page.$eval('.source-reference',e=>e.dataset.proofToken),proofToken,'Portable proof token drifted in '+file);
     if(i===postRooms.length-1){
       assert.equal(await page.$$eval('.source-reference.proof-challenge-complete',xs=>xs.length),1,'Fifth public-profile input did not complete proof verification');
+      assert.equal(await page.evaluate(()=>window.NBProfileInput.owner()),null,'Completed proof verification did not release shared public-profile input');
       assert.equal(await page.$eval('.source-reference',e=>e.getAttribute('href')),'./proof.html#'+proofToken,'Verified profile signature did not return to its proof');
     }
   }
